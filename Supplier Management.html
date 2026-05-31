@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supplier Management · Minor SQA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F3EFE4;--surface:#FFFFFF;--surface-2:#FAF6EC;--ink:#241E12;--ink-soft:#574E3B;--muted:#9C927C;
+    --line:#E8DFC9;--line-strong:#D8CCAE;--wheat:#C8A24B;--wheat-deep:#8A6D1F;--wheat-tint:#F6ECCF;--charcoal:#2A2415;
+    --red:#C2280F;--red-tint:#FBE4DD;--go:#2E7D52;--goBg:#E2F0E8;--blue:#2B5797;--blueBg:#E6EEF6;
+    --shadow:0 10px 40px rgba(74,59,18,.14);--radius:16px;--radius-sm:11px;
+    --font:"Anuphan",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:920px;margin:0 auto;min-height:100vh;background:var(--surface);box-shadow:var(--shadow);display:flex;flex-direction:column;}
+  .minorbar{background:var(--charcoal);color:#fff;display:flex;align-items:center;gap:9px;padding:9px 20px;flex:none;}
+  .minorbar .mlogo{font-weight:700;font-size:13px;letter-spacing:.16em;}.minorbar .mlogo .d{color:var(--wheat);}
+  .minorbar .ms{font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.66;}
+  .minorbar .back{margin-left:auto;font-size:11px;font-weight:600;color:#fff;text-decoration:none;background:rgba(255,255,255,.13);padding:5px 12px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+  .minorbar .back svg{width:13px;height:13px;}
+  header.top{padding:18px 22px 16px;background:linear-gradient(180deg,var(--wheat-tint),#fff 85%);border-bottom:1px solid var(--line);}
+  header.top h1{font-size:21px;font-weight:700;display:flex;align-items:center;gap:11px;}
+  header.top h1 .ic{width:36px;height:36px;border-radius:10px;background:var(--charcoal);color:var(--wheat);display:grid;place-items:center;flex:none;}
+  header.top h1 .ic svg{width:20px;height:20px;}
+  header.top p{font-size:12px;color:var(--muted);margin-top:5px;margin-left:47px;}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 22px 4px;}
+  .stat{background:var(--surface-2);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px;}
+  .stat .n{font-size:22px;font-weight:700;font-family:var(--mono);color:var(--charcoal);}
+  .stat .l{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+  @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:14px 22px;}
+  .search{flex:1;min-width:180px;position:relative;display:flex;align-items:center;}
+  .search svg{position:absolute;left:13px;width:16px;height:16px;color:var(--muted);}
+  .search input{width:100%;font-family:var(--font);font-size:14px;background:var(--surface-2);border:1.5px solid var(--line);border-radius:11px;padding:11px 13px 11px 38px;outline:none;}
+  .search input:focus{border-color:var(--wheat);background:#fff;box-shadow:0 0 0 4px var(--wheat-tint);}
+  .tbtn{display:inline-flex;align-items:center;gap:7px;font-family:var(--font);font-size:13px;font-weight:600;border-radius:11px;padding:11px 15px;cursor:pointer;border:1.5px solid transparent;transition:.15s;white-space:nowrap;}
+  .tbtn:active{transform:scale(.97);}
+  .tbtn.add{background:var(--charcoal);color:#fff;}
+  .tbtn.up{background:var(--go);color:#fff;position:relative;overflow:hidden;}
+  .tbtn.up input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .tbtn.ghost{background:#fff;color:var(--ink-soft);border-color:var(--line-strong);}
+  .tbtn svg{width:15px;height:15px;}
+  .note{margin:0 22px 8px;font-size:11.5px;color:var(--ink-soft);background:var(--blueBg);border:1px solid #CFE0F0;border-left:3px solid var(--blue);border-radius:8px;padding:9px 12px;}
+  .addbox{margin:0 22px 12px;border:1.5px dashed var(--wheat);background:var(--wheat-tint);border-radius:var(--radius-sm);padding:14px;display:none;}
+  .addbox.show{display:block;}
+  .addbox .row{display:flex;gap:9px;flex-wrap:wrap;}
+  .addbox input{flex:1;min-width:160px;font-family:var(--font);font-size:14px;background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;outline:none;}
+  .addbox input:focus{border-color:var(--wheat);}
+  .addbox .save{background:var(--charcoal);color:#fff;border:none;border-radius:9px;padding:10px 16px;font-family:var(--font);font-weight:600;font-size:13px;cursor:pointer;}
+  .list{flex:1;padding:4px 22px 30px;}
+  .srow{display:flex;align-items:center;gap:13px;padding:13px 15px;border:1.5px solid var(--line);border-radius:var(--radius-sm);margin-bottom:9px;background:#fff;transition:.15s;}
+  .srow.inactive{opacity:.55;background:var(--surface-2);}
+  .srow .av{width:40px;height:40px;border-radius:10px;flex:none;background:var(--wheat-tint);color:var(--wheat-deep);display:grid;place-items:center;font-weight:700;font-size:15px;font-family:var(--mono);}
+  .srow .si{flex:1;min-width:0;}
+  .srow .si .nm{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .srow .si .chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+  .srow .si .chip{font-size:10px;font-weight:600;background:var(--blueBg);color:var(--blue);border-radius:6px;padding:2px 7px;font-family:var(--mono);}
+  .srow .si .meta{font-size:11px;color:var(--muted);margin-top:4px;}
+  .srow .cnt{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--charcoal);background:var(--surface-2);border-radius:8px;padding:5px 10px;flex:none;}
+  .srow .acts{display:flex;gap:5px;flex:none;}
+  .srow .ib{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--line-strong);background:#fff;cursor:pointer;display:grid;place-items:center;color:var(--ink-soft);transition:.15s;}
+  .srow .ib:hover{border-color:var(--wheat);}
+  .srow .ib.del:hover{border-color:var(--red);color:var(--red);background:var(--red-tint);}
+  .srow .ib svg{width:15px;height:15px;}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:40px 20px;}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--charcoal);color:#fff;font-size:12.5px;font-weight:600;padding:11px 19px;border-radius:30px;opacity:0;pointer-events:none;transition:.3s;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast svg{width:15px;height:15px;color:#5BD49A;}
+  /* spec modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(36,30,18,.5);display:none;align-items:center;justify-content:center;z-index:60;padding:18px;}
+  .modal-bg.open{display:flex;}
+  .modal{background:#fff;border-radius:18px;width:100%;max-width:600px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+  .modal .mhd{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--surface-2);}
+  .modal .mt{font-size:16px;font-weight:700;}
+  .modal .msub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .modal .mx{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--line-strong);background:#fff;font-size:18px;cursor:pointer;color:var(--ink-soft);flex:none;}
+  .modal .mbody{padding:16px 20px;overflow-y:auto;}
+  .specform{background:var(--wheat-tint);border:1.5px dashed var(--wheat);border-radius:12px;padding:13px;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .specform input,.specform textarea{font-family:var(--font);font-size:13.5px;background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:9px 11px;outline:none;resize:none;}
+  .specform input:focus,.specform textarea:focus{border-color:var(--wheat);}
+  .specform .sp2{display:flex;gap:8px;}.specform .sp2 input{flex:1;min-width:0;}
+  .sp-add{background:var(--charcoal);color:#fff;border:none;border-radius:9px;padding:10px;font-family:var(--font);font-weight:600;font-size:13px;cursor:pointer;}
+  .sp-attach{display:flex;gap:8px;}
+  .sp-atbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--wheat-deep);background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:9px;cursor:pointer;position:relative;overflow:hidden;}
+  .sp-atbtn:hover{border-color:var(--wheat);}
+  .sp-atbtn svg{width:15px;height:15px;}
+  .sp-atbtn input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .sp-pending{display:flex;flex-wrap:wrap;gap:6px;}
+  .sp-pending:empty{display:none;}
+  .sp-att{display:flex;align-items:center;gap:5px;background:#fff;border:1.5px solid var(--line-strong);border-radius:8px;padding:4px 6px 4px 4px;font-size:11px;font-weight:600;color:var(--ink-soft);}
+  .sp-att img{width:26px;height:26px;border-radius:5px;object-fit:cover;}
+  .sp-att .fi{width:26px;height:26px;border-radius:5px;background:var(--blueBg);color:var(--blue);display:grid;place-items:center;font-size:9px;font-family:var(--mono);font-weight:700;}
+  .sp-att .rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;}
+  .sp-att .rm:hover{color:var(--red);}
+  .specitem .atts{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+  .specitem .atts .th{width:34px;height:34px;border-radius:6px;object-fit:cover;border:1px solid var(--line);}
+  .specitem .atts .fc{height:34px;display:flex;align-items:center;gap:5px;background:var(--blueBg);color:var(--blue);border-radius:6px;padding:0 8px;font-size:10.5px;font-weight:600;font-family:var(--mono);}
+  .speclist .specitem{display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border:1.5px solid var(--line);border-radius:11px;margin-bottom:8px;}
+  .speclist .specitem .num{width:24px;height:24px;border-radius:6px;background:var(--blueBg);color:var(--blue);font-family:var(--mono);font-weight:700;font-size:12px;display:grid;place-items:center;flex:none;}
+  .speclist .specitem .sd{flex:1;min-width:0;}
+  .speclist .specitem .sd b{font-size:13.5px;font-weight:700;}
+  .speclist .specitem .sd .meta{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+  .speclist .specitem .sd .dt{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .speclist .specitem .rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;flex:none;}
+  .speclist .specitem .rm:hover{color:var(--red);}
+  .speclist .empty{text-align:center;color:var(--muted);font-size:12.5px;padding:18px;}
+  .modal .mfoot{display:flex;gap:9px;padding:13px 20px;border-top:1px solid var(--line);}
+  .modal .mfoot .tbtn{flex:1;justify-content:center;}
+  .speccount{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--blue);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;font-family:var(--mono);}
+  .srow .ib.spec{position:relative;}
+  .savebar{flex:none;display:flex;align-items:center;justify-content:center;gap:7px;font-size:11px;font-weight:600;color:var(--muted);padding:7px;background:var(--surface-2);border-top:1px solid var(--line);}
+  .savebar .sd{width:7px;height:7px;border-radius:50%;background:var(--go);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="minorbar"><span class="mlogo"><span class="d">▪</span> MINOR</span><span class="ms">SQA · Supplier Management</span><a class="back" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>QA Hub</a></div>
+  <header class="top">
+    <h1><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></svg></span>Supplier Management</h1>
+    <p>ทะเบียนผู้ผลิต/ซัพพลายเออร์ · เพิ่ม–ลด · อัปโหลด Excel เข้าทุกฟอร์มอัตโนมัติ</p>
+  </header>
+  <div class="stats" id="stats"></div>
+  <div class="toolbar">
+    <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input id="search" placeholder="ค้นหาซัพพลายเออร์ หรือแบรนด์…"></div>
+    <button class="tbtn add" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>เพิ่ม</button>
+    <label class="tbtn up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>อัปโหลด Excel<input type="file" id="upload" accept=".xlsx,.xls,.csv"></label>
+    <button class="tbtn ghost" id="expBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>
+  </div>
+  <div class="note">อัปโหลดไฟล์เช่น <b>New Item-Fusion</b> หรือ <b>Export_Suppliers</b> ได้เลย — ระบบจะอ่านคอลัมน์ Supplier/Brand แล้วรวมเข้าทะเบียนอัตโนมัติ และส่งต่อชื่อซัพพลายเออร์ไปยังทุกฟอร์มที่มีช่อง Supplier</div>
+  <div class="addbox" id="addbox">
+    <div class="row">
+      <input id="newName" placeholder="ชื่อซัพพลายเออร์ *">
+      <input id="newBrands" placeholder="แบรนด์ (คั่นด้วย , เช่น BK, TPC)">
+      <button class="save" id="saveNew">บันทึก</button>
+    </div>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="savebar"><span class="sd"></span><span id="saveTxt">บันทึกอัตโนมัติ</span></div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="specModal">
+  <div class="modal">
+    <div class="mhd"><div><div class="mt" id="specTitle">สเปคสินค้า</div><div class="msub" id="specSub"></div></div><button class="mx" id="specClose">×</button></div>
+    <div class="mbody">
+      <div class="specform">
+        <input id="sp-product" placeholder="ชื่อสินค้า *">
+        <input id="sp-code" placeholder="รหัสสินค้า">
+        <div class="sp2"><input id="sp-pack" placeholder="ขนาด/บรรจุ"><input id="sp-shelf" placeholder="อายุการเก็บ"></div>
+        <textarea id="sp-detail" rows="2" placeholder="รายละเอียด / ข้อกำหนดสเปค"></textarea>
+        <div class="sp-attach">
+          <label class="sp-atbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9.5 9.5a4 4 0 0 1-5.7-5.7L14 4a2.5 2.5 0 0 1 3.5 3.5l-8 8"/></svg>แนบไฟล์สเปค<input type="file" id="sp-file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"></label>
+          <label class="sp-atbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-4l-1.5-2Z"/><circle cx="12" cy="13" r="3.3"/></svg>เพิ่มรูป<input type="file" id="sp-img" multiple accept="image/*" capture="environment"></label>
+        </div>
+        <div class="sp-pending" id="sp-pending"></div>
+        <button class="sp-add" id="sp-add">+ เพิ่มสเปค</button>
+      </div>
+      <div class="speclist" id="speclist"></div>
+    </div>
+    <div class="mfoot">
+      <button class="tbtn ghost" id="sp-pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 16l3 3 3-3M12 12v7"/></svg>โหลด PDF สเปค</button>
+      <button class="tbtn add" id="sp-done">เสร็จสิ้น</button>
+    </div>
+  </div>
+</div>
+<script>
+const LS="qos_suppliers_v1";
+const SEED=(function(){try{return JSON.parse(atob('W3sibmFtZSI6IkFucGluZyIsImJyYW5kcyI6WyJUUEMiXSwiaXRlbXMiOjEwLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJBc2FuZGFzIiwiYnJhbmRzIjpbIkJLIiwiTUZDUiAoU1opIl0sIml0ZW1zIjoxMywic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiQXVzdHJhbCIsImJyYW5kcyI6WyJUUEMiXSwiaXRlbXMiOjYsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IkJsYWNrIGJhZyIsImJyYW5kcyI6WyJNRkNSIl0sIml0ZW1zIjozLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJCb25jaG9uIiwiYnJhbmRzIjpbIk1GR0giXSwiaXRlbXMiOjIzLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJCcmVhZHRhbGsiLCJicmFuZHMiOlsiQlRNIl0sIml0ZW1zIjo0Nywic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiQ29tZm9ydGx5IEZvb2QiLCJicmFuZHMiOlsiQksiLCJUUEMiXSwiaXRlbXMiOjgsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IkNvbWdyb3VwIiwiYnJhbmRzIjpbIkJLIl0sIml0ZW1zIjo3OSwic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiRWxwb3pvIiwiYnJhbmRzIjpbIk1HIl0sIml0ZW1zIjoxLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJGaWxlcyBmb29kcyIsImJyYW5kcyI6WyJUUEMiXSwiaXRlbXMiOjEsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IkZvbnRlcnJhIiwiYnJhbmRzIjpbIk1TQ1MiLCJCSyJdLCJpdGVtcyI6MjksInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IkZyYW5rZSIsImJyYW5kcyI6WyJCSyIsIk1GR0giLCJEUSIsIlRQQyJdLCJpdGVtcyI6NzgsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IkZyb3N0eSBib3kiLCJicmFuZHMiOlsiQksiXSwiaXRlbXMiOjIsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IkZ1amlhbiBIYWlsaXRpYW4iLCJicmFuZHMiOlsiVFBDIl0sIml0ZW1zIjozLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJHcmFuZG5lc3MgSEsiLCJicmFuZHMiOlsiTUciLCJNU0NTIl0sIml0ZW1zIjoyMywic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiSGFpbmFuIiwiYnJhbmRzIjpbIk1TQ1MiXSwiaXRlbXMiOjMsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IkhFQyIsImJyYW5kcyI6WyJNU0NTIl0sIml0ZW1zIjoxNywic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiSG9ybWVsIiwiYnJhbmRzIjpbIk1HIl0sIml0ZW1zIjo3LCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJJRUEiLCJicmFuZHMiOlsiQksiXSwiaXRlbXMiOjE0LCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJJbnRlcnByZXNzIiwiYnJhbmRzIjpbIkJLIl0sIml0ZW1zIjozOCwic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiSW50b3AgKCBISykiLCJicmFuZHMiOlsiVFBDIl0sIml0ZW1zIjozLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJKaWFuZ3N1IFppc2hhbiIsImJyYW5kcyI6WyJNRyJdLCJpdGVtcyI6Mywic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiS2Fnb21lIEF1cyIsImJyYW5kcyI6WyJNU0NTIiwiVFBDIl0sIml0ZW1zIjoxMSwic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiS2Fnb21lIFVTQSIsImJyYW5kcyI6WyJUUEMiXSwiaXRlbXMiOjMsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IkthaWRhIiwiYnJhbmRzIjpbIkJLIiwiVFBDIiwiTUZHSCJdLCJpdGVtcyI6MTgsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IktpbmdtYW8iLCJicmFuZHMiOlsiR0FHQSJdLCJpdGVtcyI6MjUsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IkxhbWIgd2VzdG9uIiwiYnJhbmRzIjpbIkJLIl0sIml0ZW1zIjoxLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJMZXByaW5vIiwiYnJhbmRzIjpbIk1TQ1MiXSwiaXRlbXMiOjMsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6Ik1jY2FpbiIsImJyYW5kcyI6WyJNRkNSIChTWikiXSwiaXRlbXMiOjEsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6Ik1pZCBBbWVyaWNhIiwiYnJhbmRzIjpbIkJLIl0sIml0ZW1zIjoxMCwic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiTWlzc2lvbiIsImJyYW5kcyI6WyJNRyJdLCJpdGVtcyI6MTQsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6Ik11ZWxvbGl2YSIsImJyYW5kcyI6WyJNU0NTIl0sIml0ZW1zIjo2LCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJQQVRBR09OSUFGUkVTSCBTLkEiLCJicmFuZHMiOlsiVFBDIl0sIml0ZW1zIjoxLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJQVC4gR3JlYXQgR2lhbnQiLCJicmFuZHMiOlsiTVNDUyJdLCJpdGVtcyI6MTYsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IlNhbm5lbmciLCJicmFuZHMiOlsiU0dCIiwiVFBDIl0sIml0ZW1zIjo4LCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJTaGFuZG9uZyBMaXRpYW4iLCJicmFuZHMiOlsiTVNDUyJdLCJpdGVtcyI6MTEsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IlNoYW5naGFpIElFQSBUZXh0aWxlcyIsImJyYW5kcyI6WyJCSyJdLCJpdGVtcyI6MjksInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IlNpZ25hdHVyZSBJbmRpYSIsImJyYW5kcyI6WyJCSyJdLCJpdGVtcyI6Miwic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiU25vd3ZhbGxleSIsImJyYW5kcyI6WyJNRkNSIChTWikiXSwiaXRlbXMiOjEsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IlNZUiIsImJyYW5kcyI6WyJCSyJdLCJpdGVtcyI6NjEsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IlRhc3R5IEJpdGUiLCJicmFuZHMiOlsiQksiXSwiaXRlbXMiOjYsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IlRvcCBjdXQiLCJicmFuZHMiOlsiTUZDUiJdLCJpdGVtcyI6Miwic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiVHJhZGV4IiwiYnJhbmRzIjpbIlNXIl0sIml0ZW1zIjoyLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJWLVN0YXIiLCJicmFuZHMiOlsiQksiXSwiaXRlbXMiOjIwLCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJXYXNzZXJuc3Ryb20iLCJicmFuZHMiOlsiRFEiXSwiaXRlbXMiOjYsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IldpbG1hciIsImJyYW5kcyI6WyJCSyIsIk1TQ1MiXSwiaXRlbXMiOjE5LCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJYSUFNRU4gVUtBTkcgSU1QICYgRVhQLiBDTy4sIExURCwiLCJicmFuZHMiOlsiTVNDUyJdLCJpdGVtcyI6MTEsInN0YXR1cyI6ImFjdGl2ZSJ9LHsibmFtZSI6IllhbnRhaSBSdW5oZW5nIiwiYnJhbmRzIjpbIlNXIl0sIml0ZW1zIjo1LCJzdGF0dXMiOiJhY3RpdmUifSx7Im5hbWUiOiJZYW50YWkgWXVuaGVuZyIsImJyYW5kcyI6WyJTVyJdLCJpdGVtcyI6MSwic3RhdHVzIjoiYWN0aXZlIn0seyJuYW1lIjoiWmhlamlhbmcgVGltZXMiLCJicmFuZHMiOlsiVFBDIl0sIml0ZW1zIjoxLCJzdGF0dXMiOiJhY3RpdmUifV0='));}catch(e){return [];}})();
+let suppliers=(function(){try{const v=JSON.parse(localStorage.getItem(LS));if(Array.isArray(v)&&v.length)return v;}catch(e){} return SEED.slice();})();
+let query="";
+const $=s=>document.querySelector(s);
+function esc(s){return(s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function save(){ try{localStorage.setItem(LS,JSON.stringify(suppliers)); flashSave(); broadcast(); }catch(e){ toast("พื้นที่จัดเก็บเต็ม — ลองลดจำนวนรูป/ไฟล์"); } }
+let st;function flashSave(){const b=$("#saveTxt");b.textContent="บันทึกแล้ว";clearTimeout(st);st=setTimeout(()=>b.textContent="บันทึกอัตโนมัติ",1100);}
+// share active supplier names to all forms
+function broadcast(){ try{ localStorage.setItem("qos_supplier_names", JSON.stringify(suppliers.filter(s=>s.status!=="inactive").map(s=>s.name))); }catch(e){} }
+function toast(m){const t=$("#toast");t.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>'+esc(m)+'</span>';t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),3200);}
+
+function renderStats(){
+  const active=suppliers.filter(s=>s.status!=="inactive").length;
+  const items=suppliers.reduce((a,b)=>a+(+b.items||0),0);
+  const brands=new Set();suppliers.forEach(s=>(s.brands||[]).forEach(b=>brands.add(b)));
+  $("#stats").innerHTML=[["ซัพพลายเออร์ทั้งหมด",suppliers.length],["ใช้งานอยู่",active],["แบรนด์",brands.size],["รายการสินค้า",items]]
+    .map(s=>`<div class="stat"><div class="n">${s[1]}</div><div class="l">${s[0]}</div></div>`).join("");
+}
+function renderList(){
+  const q=query.trim().toLowerCase();
+  const rows=suppliers.map((s,i)=>({s,i})).filter(({s})=>!q||s.name.toLowerCase().includes(q)||(s.brands||[]).join(" ").toLowerCase().includes(q));
+  $("#list").innerHTML = rows.length ? rows.map(({s,i})=>`
+    <div class="srow ${s.status==="inactive"?"inactive":""}">
+      <div class="av">${esc((s.name||"?").slice(0,2).toUpperCase())}</div>
+      <div class="si"><div class="nm">${esc(s.name)}</div>
+        <div class="chips">${(s.brands||[]).map(b=>`<span class="chip">${esc(b)}</span>`).join("")||'<span class="meta">—</span>'}</div>
+      </div>
+      <div class="cnt">${(+s.items||0)} ชิ้น</div>
+      <div class="acts">
+        <button class="ib spec" data-act="spec" data-i="${i}" title="สเปคสินค้า"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>${(s.specs&&s.specs.length)?`<span class="speccount">${s.specs.length}</span>`:''}</button>
+        <button class="ib" data-act="toggle" data-i="${i}" title="เปิด/ปิด">${s.status==="inactive"
+          ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>'
+          :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.2A11 11 0 0 1 12 4c6.5 0 10 7 10 7a13 13 0 0 1-2 2.7M6.6 6.6A13 13 0 0 0 2 11s3.5 7 10 7a11 11 0 0 0 4.4-.9M3 3l18 18"/></svg>'}</button>
+        <button class="ib del" data-act="del" data-i="${i}" title="ลบ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+      </div>
+    </div>`).join("") : `<div class="empty">ไม่พบซัพพลายเออร์${q?' สำหรับ "'+esc(q)+'"':''}</div>`;
+  $("#list").querySelectorAll("[data-act]").forEach(b=>b.addEventListener("click",()=>{
+    const i=+b.dataset.i;
+    if(b.dataset.act==="del"){ if(confirm('ลบ "'+suppliers[i].name+'" ?')){ suppliers.splice(i,1); save(); renderAll(); toast("ลบแล้ว"); } }
+    else if(b.dataset.act==="spec"){ openSpec(i); }
+    else { suppliers[i].status=suppliers[i].status==="inactive"?"active":"inactive"; save(); renderAll(); }
+  }));
+}
+function renderAll(){ renderStats(); renderList(); }
+
+$("#search").addEventListener("input",e=>{query=e.target.value;renderList();});
+$("#addBtn").addEventListener("click",()=>{ $("#addbox").classList.toggle("show"); if($("#addbox").classList.contains("show"))$("#newName").focus(); });
+$("#saveNew").addEventListener("click",()=>{
+  const nm=$("#newName").value.trim(); if(!nm){toast("กรอกชื่อก่อน");return;}
+  if(suppliers.some(s=>s.name.toLowerCase()===nm.toLowerCase())){toast("มีซัพพลายเออร์นี้แล้ว");return;}
+  const brands=$("#newBrands").value.split(",").map(x=>x.trim()).filter(Boolean);
+  suppliers.unshift({name:nm,brands,items:0,status:"active"});
+  $("#newName").value="";$("#newBrands").value="";$("#addbox").classList.remove("show");
+  save(); renderAll(); toast('เพิ่ม "'+nm+'" แล้ว');
+});
+
+// ===== Excel upload — auto-detect Supplier/Brand columns and merge =====
+$("#upload").addEventListener("change",e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});
+      let added=0,updated=0,scanned=0;
+      wb.SheetNames.forEach(sn=>{
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:""});
+        // find header row containing a Supplier-like column
+        let hi=-1,sc=-1,bc=-1,ic=-1;
+        for(let i=0;i<Math.min(20,rows.length);i++){
+          const r2=rows[i].map(x=>String(x).toLowerCase().trim());
+          const s=r2.findIndex(c=>/supplier|vendor|ผู้ผลิต|ซัพ/.test(c));
+          if(s>=0){ hi=i;sc=s; bc=r2.findIndex(c=>/brand|แบรนด์/.test(c)); ic=r2.findIndex(c=>/item|code|รหัส|qty|จำนวน/.test(c)); break; }
+        }
+        if(hi<0)return;
+        for(let i=hi+1;i<rows.length;i++){
+          const name=String(rows[i][sc]==null?"":rows[i][sc]).trim();
+          if(!name||name.toLowerCase()==="nan")continue;
+          scanned++;
+          const brand=bc>=0?String(rows[i][bc]==null?"":rows[i][bc]).trim():"";
+          let ex=suppliers.find(s=>s.name.toLowerCase()===name.toLowerCase());
+          if(!ex){ ex={name,brands:[],items:0,status:"active"}; suppliers.push(ex); added++; }
+          else updated++;
+          if(brand&&brand.toLowerCase()!=="nan"&&!ex.brands.includes(brand))ex.brands.push(brand);
+          ex.items=(+ex.items||0)+1;
+        }
+      });
+      suppliers.sort((a,b)=>a.name.localeCompare(b.name));
+      save(); renderAll();
+      if(scanned===0) toast("ไม่พบคอลัมน์ Supplier ในไฟล์");
+      else toast("เพิ่มใหม่ "+added+" · อัปเดต "+updated+" ราย");
+    }catch(err){ toast("อ่านไฟล์ไม่สำเร็จ"); }
+    e.target.value="";
+  };
+  r.readAsArrayBuffer(file);
+});
+
+$("#expBtn").addEventListener("click",()=>{
+  let body=suppliers.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.name)}</td><td>${esc((s.brands||[]).join(", "))}</td><td>${+s.items||0}</td><td>${s.status==="inactive"?"Inactive":"Active"}</td></tr>`).join("");
+  const html="\ufeff<html><head><meta charset='utf-8'></head><body><h3>Export_Suppliers</h3><table border='1'><tr><th>#</th><th>Supplier</th><th>Brand</th><th>Items</th><th>Status</th></tr>"+body+"</table></body></html>";
+  const blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="Export_Suppliers.xls";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);
+});
+
+// ===== Per-supplier product specs + PDF =====
+let specIdx=-1, pendingAtts=[];
+function fileToData(file,cb){
+  if(file.type.startsWith("image/")){
+    const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{let w=i.width,h=i.height,m=1100;if(w>h&&w>m){h=Math.round(h*m/w);w=m;}else if(h>m){w=Math.round(w*m/h);h=m;}const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(i,0,0,w,h);cb({name:file.name,type:"image",dataUrl:c.toDataURL("image/jpeg",.72)});};i.src=r.result;};r.readAsDataURL(file);
+  } else {
+    const r=new FileReader();r.onload=()=>cb({name:file.name,type:"file",ext:(file.name.split(".").pop()||"").toUpperCase(),dataUrl:r.result});r.readAsDataURL(file);
+  }
+}
+function renderPending(){
+  $("#sp-pending").innerHTML=pendingAtts.map((a,j)=>a.type==="image"
+    ?`<span class="sp-att"><img src="${a.dataUrl}"><button class="rm" data-pa="${j}">×</button></span>`
+    :`<span class="sp-att"><span class="fi">${esc(a.ext||"DOC")}</span>${esc(a.name.slice(0,14))}<button class="rm" data-pa="${j}">×</button></span>`).join("");
+  $("#sp-pending").querySelectorAll("[data-pa]").forEach(b=>b.addEventListener("click",()=>{pendingAtts.splice(+b.dataset.pa,1);renderPending();}));
+}
+$("#sp-file").addEventListener("change",e=>{[...e.target.files].forEach(f=>fileToData(f,a=>{pendingAtts.push(a);renderPending();}));e.target.value="";});
+$("#sp-img").addEventListener("change",e=>{[...e.target.files].forEach(f=>fileToData(f,a=>{pendingAtts.push(a);renderPending();}));e.target.value="";});
+function openSpec(i){
+  specIdx=i; const s=suppliers[i];
+  $("#specTitle").textContent="สเปคสินค้า · "+s.name;
+  $("#specSub").textContent=(s.brands||[]).join(", ")||"—";
+  pendingAtts=[]; renderPending();
+  renderSpecList();
+  $("#specModal").classList.add("open");
+}
+function renderSpecList(){
+  const s=suppliers[specIdx]; if(!s)return;
+  const specs=s.specs||[];
+  $("#speclist").innerHTML = specs.length ? specs.map((sp,j)=>`
+    <div class="specitem">
+      <div class="num">${j+1}</div>
+      <div class="sd"><b>${esc(sp.product)}</b>
+        <div class="meta">${esc(sp.code||'—')}${sp.pack?' · '+esc(sp.pack):''}${sp.shelf?' · '+esc(sp.shelf):''}</div>
+        ${sp.detail?`<div class="dt">${esc(sp.detail)}</div>`:''}
+        ${(sp.atts&&sp.atts.length)?`<div class="atts">${sp.atts.map(a=>a.type==="image"?`<img class="th" src="${a.dataUrl}">`:`<span class="fc">${esc(a.ext||"DOC")} ${esc(a.name.slice(0,12))}</span>`).join("")}</div>`:''}
+      </div>
+      <button class="rm" data-rm="${j}">×</button>
+    </div>`).join("") : `<div class="empty">ยังไม่มีสเปคสินค้า — เพิ่มด้านบน</div>`;
+  $("#speclist").querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click",()=>{
+    suppliers[specIdx].specs.splice(+b.dataset.rm,1); save(); renderSpecList(); renderList();
+  }));
+}
+$("#sp-add").addEventListener("click",()=>{
+  const product=$("#sp-product").value.trim(); if(!product){toast("กรอกชื่อสินค้าก่อน");return;}
+  const s=suppliers[specIdx]; if(!s.specs)s.specs=[];
+  s.specs.push({product,code:$("#sp-code").value.trim(),pack:$("#sp-pack").value.trim(),shelf:$("#sp-shelf").value.trim(),detail:$("#sp-detail").value.trim(),atts:pendingAtts.slice()});
+  pendingAtts=[]; renderPending();
+  ["sp-product","sp-code","sp-pack","sp-shelf","sp-detail"].forEach(id=>$("#"+id).value="");
+  save(); renderSpecList(); renderList(); toast("เพิ่มสเปคแล้ว");
+});
+$("#specClose").addEventListener("click",()=>$("#specModal").classList.remove("open"));
+$("#sp-done").addEventListener("click",()=>$("#specModal").classList.remove("open"));
+$("#specModal").addEventListener("click",e=>{ if(e.target===$("#specModal"))$("#specModal").classList.remove("open"); });
+$("#sp-pdf").addEventListener("click",()=>{
+  const s=suppliers[specIdx]; const specs=s.specs||[];
+  if(!specs.length){toast("ยังไม่มีสเปคให้พิมพ์");return;}
+  const items=specs.map((sp,j)=>`<div class="item"><h2>${j+1}. ${esc(sp.product)}</h2><table>
+    <tr><td class="k">รหัสสินค้า</td><td>${esc(sp.code||'—')}</td></tr>
+    <tr><td class="k">ขนาด/บรรจุ</td><td>${esc(sp.pack||'—')}</td></tr>
+    <tr><td class="k">อายุการเก็บ</td><td>${esc(sp.shelf||'—')}</td></tr>
+    <tr><td class="k">รายละเอียดสเปค</td><td>${esc(sp.detail||'—')}</td></tr>
+    ${(sp.atts&&sp.atts.some(a=>a.type==="file"))?`<tr><td class="k">ไฟล์แนบ</td><td>${sp.atts.filter(a=>a.type==="file").map(a=>esc(a.name)).join(", ")}</td></tr>`:''}
+    </table>${(sp.atts&&sp.atts.some(a=>a.type==="image"))?`<div class="imgs">${sp.atts.filter(a=>a.type==="image").map(a=>`<img src="${a.dataUrl}">`).join("")}</div>`:''}</div>`).join("");
+  const doc=`<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>Spec ${esc(s.name)}</title>
+    <style>body{font-family:'Anuphan',Tahoma,sans-serif;color:#241E12;padding:28px;}
+    h1{font-size:19px;color:#2A2415;margin:0 0 3px;}.sub{color:#9C927C;font-size:12px;margin-bottom:4px;}
+    .minor{font-size:11px;color:#8A6D1F;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;border-bottom:2px solid #C8A24B;padding-bottom:8px;}
+    .item{margin-bottom:16px;page-break-inside:avoid;}.item h2{font-size:14px;color:#8A6D1F;margin-bottom:6px;}
+    .imgs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}.imgs img{width:150px;height:150px;object-fit:cover;border-radius:8px;border:1px solid #E8DFC9;}
+    table{width:100%;border-collapse:collapse;font-size:12.5px;}td{border:1px solid #E8DFC9;padding:6px 10px;}td.k{background:#FAF6EC;font-weight:600;width:32%;color:#574E3B;}
+    @media print{@page{size:A4;margin:15mm}}</style></head><body>
+    <div class="minor">▪ MINOR · SQA — Supplier Product Specification</div>
+    <h1>${esc(s.name)}</h1>
+    <div class="sub">แบรนด์: ${esc((s.brands||[]).join(", ")||"—")} · จำนวนสเปค ${specs.length} รายการ · ${new Date().toLocaleDateString('th-TH')}</div>
+    <div style="height:10px"></div>
+    ${items}
+    <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>`;
+  const w=window.open("","_blank"); if(w){w.document.open();w.document.write(doc);w.document.close();}
+});
+
+broadcast(); renderAll();
+</script>
+</body>
+</html>

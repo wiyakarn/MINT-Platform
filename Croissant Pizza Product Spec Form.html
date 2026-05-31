@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Minor Food — แบบฟอร์มข้อมูลจำเพาะสินค้า</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<style>
+  :root{
+    --bg:#EDEEF2;--surface:#FFFFFF;--surface-2:#F5F6F9;
+    --ink:#171A22;--ink-soft:#474B57;--muted:#888D9B;
+    --line:#E4E6EC;--line-strong:#CDD0DA;
+    /* Minor corporate navy = fixed frame color (mapped onto legacy --green tokens) */
+    --green:#16294D;--green-deep:#0E1C38;--green-tint:#E5E8EF;--charcoal:#11203B;
+    --red:#D8232A;--red-tint:#FBE6E6;
+    --pass:#0B6B3A;--pass-tint:#E0EFE7;--fail:#C2280F;--fail-tint:#FBE4DD;--hold:#B07D12;--hold-tint:#F5ECCF;
+    /* dynamic per-brand accent (set by JS) */
+    --brand:#16294D;--brand-tint:#E5E8EF;--brand-ink:#16294D;
+    --shadow-lift:0 10px 40px rgba(22,41,77,.16);
+    --radius:16px;--radius-sm:11px;
+    --font:"Anuphan",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(120% 60% at 50% -10%, rgba(22,41,77,.10), transparent 60%),radial-gradient(80% 50% at 100% 110%, rgba(22,41,77,.05), transparent 60%);}
+
+  .app{position:relative;z-index:1;width:100%;max-width:460px;min-height:100%;background:var(--surface);display:flex;flex-direction:column;box-shadow:var(--shadow-lift);}
+  @media(min-width:540px){body{align-items:center;padding:28px 16px;}.app{min-height:auto;height:min(884px,calc(100vh - 56px));border-radius:30px;overflow:hidden;}}
+
+  /* Minor corporate identity bar (fixed) */
+  .minorbar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--charcoal);color:#fff;white-space:nowrap;overflow:hidden;}
+  .minorbar .mlogo{font-weight:700;font-size:12.5px;letter-spacing:.14em;flex:none;}
+  .minorbar .mlogo .dot{color:#C9A24B;}
+  .minorbar .msub{font-size:9px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;opacity:.7;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .minorbar .mqa{flex:none;font-size:8.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.13);padding:3px 9px;border-radius:20px;}
+
+  /* dynamic per-brand document header */
+  header.top{flex:none;padding:14px 20px 13px;background:linear-gradient(180deg,var(--brand-tint),#fff 78%);border-bottom:3px solid var(--brand);transition:background .35s,border-color .35s;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-logo-chip{width:54px;height:46px;border-radius:10px;flex:none;background:#fff;border:1.5px solid var(--line);display:grid;place-items:center;padding:5px;box-shadow:0 2px 8px rgba(22,41,77,.1);overflow:hidden;}
+  .brand-logo-chip img{max-width:100%;max-height:100%;object-fit:contain;}
+  .brand-txt{flex:1;min-width:0;}
+  .brand-txt h1{font-size:15px;font-weight:700;letter-spacing:-.01em;line-height:1.15;color:var(--brand-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .brand-txt p{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-top:2px;}
+  .doc-ref{flex:none;text-align:right;}
+  .doc-ref .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600;}
+  .doc-ref .val{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--ink-soft);}
+
+  .stepper{display:flex;align-items:center;gap:0;margin-top:14px;}
+  .stepper .node{display:flex;flex-direction:column;align-items:center;flex:none;width:32px;cursor:pointer;}
+  .stepper .dot{width:29px;height:29px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;font-family:var(--mono);background:var(--surface-2);border:1.5px solid var(--line-strong);color:var(--muted);transition:.35s cubic-bezier(.4,0,.2,1);}
+  .stepper .node[data-state="done"] .dot{background:var(--green);border-color:var(--green);color:#fff;}
+  .stepper .node[data-state="active"] .dot{background:#fff;border-color:var(--green);color:var(--green-deep);box-shadow:0 0 0 4px var(--green-tint);}
+  .stepper .bar{flex:1;height:2px;background:var(--line-strong);position:relative;border-radius:2px;}
+  .stepper .bar i{position:absolute;inset:0;width:0;background:var(--green);border-radius:2px;transition:width .4s ease;}
+
+  .body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+  .body::-webkit-scrollbar{width:0;}
+  .step-head{padding:20px 22px 4px;}
+  .step-kicker{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;color:var(--green-deep);text-transform:uppercase;letter-spacing:.06em;}
+  .step-kicker .seg{font-family:var(--mono);}
+  .step-head h2{font-size:21px;font-weight:700;letter-spacing:-.01em;margin-top:6px;}
+  .step-head .sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+  .fields{padding:14px 22px 24px;display:flex;flex-direction:column;gap:16px;}
+
+  .field{opacity:1;}
+  .field > label.flabel{display:flex;align-items:baseline;gap:7px;margin-bottom:7px;flex-wrap:wrap;}
+  .flabel .th{font-size:13.5px;font-weight:600;color:var(--ink);}
+  .flabel .en{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-family:var(--mono);}
+  .flabel .req{color:var(--red);font-weight:700;}
+
+  .ctrl{width:100%;font-family:var(--font);font-size:15px;font-weight:500;color:var(--ink);background:var(--surface-2);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:13px 14px;transition:.18s;appearance:none;outline:none;}
+  .ctrl::placeholder{color:#B6BCB2;font-weight:400;}
+  .ctrl:focus{border-color:var(--green);background:#fff;box-shadow:0 0 0 4px var(--green-tint);}
+  textarea.ctrl{resize:none;min-height:80px;line-height:1.5;}
+
+  .selwrap{position:relative;}
+  .selwrap::after{content:"";position:absolute;right:15px;top:50%;width:9px;height:9px;border-right:2px solid var(--green-deep);border-bottom:2px solid var(--green-deep);transform:translateY(-65%) rotate(45deg);pointer-events:none;}
+  select.ctrl{padding-right:38px;cursor:pointer;}
+  select.ctrl.placeheld{color:#B6BCB2;font-weight:400;}
+
+  /* brand picker (custom logo dropdown) */
+  .brandpick{position:relative;}
+  .bp-trigger{width:100%;display:flex;align-items:center;gap:11px;font-family:var(--font);font-size:15px;font-weight:500;color:var(--ink);background:var(--surface-2);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:9px 12px;cursor:pointer;transition:.18s;}
+  .brandpick.open .bp-trigger,.bp-trigger:focus{border-color:var(--brand);background:#fff;box-shadow:0 0 0 4px var(--brand-tint);outline:none;}
+  .bp-chip{width:42px;height:34px;flex:none;border-radius:8px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;padding:4px;overflow:hidden;}
+  .bp-chip img{max-width:100%;max-height:100%;object-fit:contain;}
+  .bp-chip.empty{background:var(--surface-2);}
+  .bp-name{flex:1;text-align:left;font-weight:600;}
+  .bp-name.ph{color:#B6BCB2;font-weight:400;}
+  .bp-caret{flex:none;width:9px;height:9px;border-right:2px solid var(--brand-ink);border-bottom:2px solid var(--brand-ink);transform:rotate(45deg);margin-right:5px;transition:.2s;}
+  .brandpick.open .bp-caret{transform:rotate(-135deg);}
+  .bp-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:#fff;border:1.5px solid var(--line);border-radius:var(--radius-sm);box-shadow:0 14px 38px rgba(22,41,77,.2);padding:6px;max-height:300px;overflow-y:auto;}
+  .brandpick.open .bp-menu{display:block;animation:fade .15s;}
+  .bp-opt{width:100%;display:flex;align-items:center;gap:11px;background:none;border:none;border-radius:9px;padding:7px 9px;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;color:var(--ink);transition:.12s;}
+  .bp-opt:hover{background:var(--surface-2);}
+  .bp-opt.on{background:var(--brand-tint);color:var(--brand-ink);}
+  .bp-optname{flex:1;text-align:left;}
+  .bp-check{flex:none;width:18px;height:18px;color:var(--brand);}
+  .bp-check svg{width:18px;height:18px;}
+
+  /* QA approver (per-brand, auto) */
+  .qapick{display:flex;flex-direction:column;gap:9px;}
+  .qa-brand{display:flex;align-items:center;gap:9px;background:var(--brand-tint);border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 11px;}
+  .qa-logo{width:34px;height:26px;flex:none;border-radius:6px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;padding:3px;overflow:hidden;}
+  .qa-logo img{max-width:100%;max-height:100%;object-fit:contain;}
+  .qa-bn{font-size:11.5px;font-weight:500;color:var(--ink-soft);} .qa-bn b{color:var(--brand-ink);font-weight:700;}
+
+  .unitwrap{position:relative;display:flex;align-items:center;}
+  .unitwrap .unit{position:absolute;right:14px;font-size:12px;font-weight:600;color:var(--muted);font-family:var(--mono);pointer-events:none;}
+  .unitwrap .ctrl{padding-right:50px;font-family:var(--mono);}
+
+  .grp{background:var(--surface-2);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:13px 14px;}
+  .grp.focuswithin{border-color:var(--line-strong);}
+  .grp .grp-cols{display:flex;gap:12px;}
+  .grp .col{flex:1;min-width:0;}
+  .sublbl{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;display:block;}
+  .mini{width:100%;font-family:var(--mono);font-size:15px;font-weight:600;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;outline:none;transition:.18s;appearance:none;}
+  .mini:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-tint);}
+
+  /* range */
+  .range-row{display:flex;align-items:center;gap:10px;}
+  .range-row .mini{text-align:center;}
+  .range-row .dash{color:var(--muted);font-weight:600;flex:none;}
+  .range-row .rng-unit{font-size:12px;font-weight:600;color:var(--muted);font-family:var(--mono);flex:none;min-width:46px;}
+
+  /* number stepper */
+  .numstep{display:flex;align-items:center;gap:10px;}
+  .numstep .mb{width:46px;height:48px;flex:none;border-radius:11px;border:1.5px solid var(--line);background:var(--surface-2);font-size:24px;font-weight:500;color:var(--green-deep);cursor:pointer;display:grid;place-items:center;transition:.15s;user-select:none;}
+  .numstep .mb:active{transform:scale(.92);background:var(--green-tint);}
+  .ns-wrap{flex:1;position:relative;display:flex;align-items:center;}
+  .ns-input{width:100%;text-align:center;font-family:var(--mono);font-size:19px;font-weight:600;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:12px 44px 12px 12px;outline:none;appearance:none;}
+  .ns-input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-tint);}
+  .ns-unit{position:absolute;right:14px;font-size:12px;font-weight:600;color:var(--muted);font-family:var(--mono);pointer-events:none;}
+
+  /* segment (YES/NO etc) */
+  .segment{display:flex;gap:8px;}
+  .segbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:var(--radius-sm);border:1.5px solid var(--line);background:var(--surface-2);font-family:var(--font);font-size:14.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s;}
+  .segbtn .sc{width:18px;height:18px;border-radius:50%;border:2px solid var(--line-strong);display:grid;place-items:center;}
+  .segbtn .sc::after{content:"";width:8px;height:8px;border-radius:50%;background:transparent;}
+  .segbtn.on[data-tone="yes"]{border-color:var(--green);background:var(--green-tint);color:var(--green-deep);}
+  .segbtn.on[data-tone="yes"] .sc{border-color:var(--green);} .segbtn.on[data-tone="yes"] .sc::after{background:var(--green);}
+  .segbtn.on[data-tone="no"]{border-color:var(--fail);background:var(--fail-tint);color:var(--fail);}
+  .segbtn.on[data-tone="no"] .sc{border-color:var(--fail);} .segbtn.on[data-tone="no"] .sc::after{background:var(--fail);}
+
+  /* checklist */
+  .checks{display:flex;flex-direction:column;gap:8px;}
+  .chk{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--line);background:var(--surface-2);cursor:pointer;transition:.15s;}
+  .chk input{position:absolute;opacity:0;pointer-events:none;}
+  .chk .cbox{width:21px;height:21px;border-radius:6px;border:2px solid var(--line-strong);flex:none;display:grid;place-items:center;transition:.15s;}
+  .chk .cbox::after{content:"";width:11px;height:6px;border-left:2.4px solid #fff;border-bottom:2.4px solid #fff;transform:rotate(-45deg) scale(0);transition:.15s;margin-top:-2px;}
+  .chk .ctext{font-size:14px;font-weight:600;}
+  .chk.on{border-color:var(--green);background:var(--green-tint);}
+  .chk.on .cbox{background:var(--green);border-color:var(--green);}
+  .chk.on .cbox::after{transform:rotate(-45deg) scale(1);}
+  .chk.reject.on{border-color:var(--fail);background:var(--fail-tint);}
+  .chk.reject.on .cbox{background:var(--fail);border-color:var(--fail);}
+
+  /* photo gallery */
+  .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .gphoto{position:relative;aspect-ratio:1;border-radius:13px;overflow:hidden;border:1.5px solid var(--green);}
+  .gphoto img{width:100%;height:100%;object-fit:cover;}
+  .gphoto .gdel{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(27,29,26,.7);color:#fff;border:none;display:grid;place-items:center;cursor:pointer;font-size:13px;}
+  .gadd{position:relative;aspect-ratio:1;border-radius:13px;border:1.5px dashed var(--line-strong);background:var(--surface-2);display:grid;place-items:center;cursor:pointer;transition:.18s;}
+  .gadd:hover{border-color:var(--green);background:var(--green-tint);}
+  .gadd input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .gadd .ph{display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--muted);}
+  .gadd .ph svg{width:22px;height:22px;}
+  .gadd .ph span{font-size:10px;font-weight:600;}
+
+  /* custom fields */
+  .cfields{display:flex;flex-direction:column;gap:8px;}
+  .cfrow{display:flex;gap:8px;align-items:center;}
+  .cfrow .cf-label{flex:0 0 38%;font-family:var(--font);font-weight:600;}
+  .cfrow .cf-value{flex:1;font-family:var(--font);font-weight:500;}
+  .cfrow .cf-del{flex:none;width:34px;height:40px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:18px;cursor:pointer;transition:.15s;}
+  .cfrow .cf-del:active{transform:scale(.92);background:var(--fail-tint);color:var(--fail);}
+  .cf-add{margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--surface-2);border:1.5px dashed var(--line-strong);color:var(--brand-ink);border-radius:var(--radius-sm);padding:12px;font-family:var(--font);font-size:13.5px;font-weight:600;cursor:pointer;transition:.15s;}
+  .cf-add:hover{border-color:var(--brand);background:var(--brand-tint);}
+  .cf-add:active{transform:scale(.98);} .cf-add svg{width:16px;height:16px;}
+
+  /* result chips */
+  .result-opts{display:flex;flex-direction:column;gap:10px;}
+  .ropt{display:flex;align-items:center;gap:13px;padding:15px 16px;border-radius:var(--radius-sm);border:1.5px solid var(--line);background:var(--surface-2);cursor:pointer;transition:.18s;}
+  .ropt .rdot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line-strong);flex:none;display:grid;place-items:center;transition:.18s;}
+  .ropt .rdot::after{content:"";width:10px;height:10px;border-radius:50%;background:transparent;transition:.18s;}
+  .ropt .rtxt{font-weight:600;font-size:14px;}
+  .ropt .rsub{font-size:11px;color:var(--muted);font-weight:500;}
+  .ropt.sel.pass{border-color:var(--pass);background:var(--pass-tint);}
+  .ropt.sel.pass .rdot{border-color:var(--pass);}.ropt.sel.pass .rdot::after{background:var(--pass);}
+  .ropt.sel.fail{border-color:var(--fail);background:var(--fail-tint);}
+  .ropt.sel.fail .rdot{border-color:var(--fail);}.ropt.sel.fail .rdot::after{background:var(--fail);}
+
+  /* spec scan card */
+  .specscan{border:1.5px dashed var(--green);background:linear-gradient(120deg,var(--green-tint),#fff);border-radius:var(--radius);padding:15px;}
+  .specscan .ss-top{display:flex;align-items:center;gap:12px;}
+  .specscan .ss-ic{width:42px;height:42px;border-radius:11px;flex:none;background:var(--green);display:grid;place-items:center;color:#fff;}
+  .specscan .ss-ic svg{width:23px;height:23px;}
+  .specscan .ss-tt{flex:1;min-width:0;}
+  .specscan .ss-tt b{font-size:13.5px;font-weight:700;display:block;}
+  .specscan .ss-tt span{font-size:11.5px;color:var(--ink-soft);}
+  .specscan .ss-btn{margin-top:12px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:#fff;border:none;border-radius:11px;padding:13px;font-family:var(--font);font-size:14.5px;font-weight:600;cursor:pointer;position:relative;overflow:hidden;}
+  .specscan .ss-btn:active{transform:scale(.98);}
+  .specscan .ss-btn svg{width:18px;height:18px;}
+  .specscan .ss-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .specscan.busy .ss-btn{background:var(--green-deep);pointer-events:none;}
+  .ss-prog{margin-top:11px;display:none;}
+  .specscan.busy .ss-prog{display:block;}
+  .ss-prog .bar{height:7px;border-radius:5px;background:#fff;border:1px solid var(--line);overflow:hidden;}
+  .ss-prog .bar i{display:block;height:100%;width:0;background:var(--green);transition:width .3s;}
+  .ss-prog .lbl{font-size:11px;font-weight:600;color:var(--green-deep);margin-top:6px;text-align:center;}
+  .ss-done{margin-top:12px;display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid var(--green);border-radius:11px;padding:9px 11px;}
+  .ss-done img{width:46px;height:46px;border-radius:8px;object-fit:cover;flex:none;}
+  .ss-done .dt{flex:1;min-width:0;}
+  .ss-done .dt b{font-size:12.5px;font-weight:700;color:var(--green-deep);display:flex;align-items:center;gap:5px;}
+  .ss-done .dt b svg{width:14px;height:14px;}
+  .ss-done .dt span{font-size:11px;color:var(--muted);}
+  .ss-done .rescan{background:none;border:none;color:var(--green-deep);font-family:var(--font);font-weight:600;font-size:12px;cursor:pointer;flex:none;text-decoration:underline;}
+
+  /* toast */
+  .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);z-index:40;background:var(--ink);color:#fff;font-size:12.5px;font-weight:600;padding:11px 18px;border-radius:30px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.3s;display:flex;align-items:center;gap:8px;max-width:84%;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast svg{width:16px;height:16px;flex:none;color:#5BD49A;}
+
+  /* info / product cards */
+  .product-card{display:flex;gap:14px;align-items:center;background:linear-gradient(120deg,var(--green-tint),#fff);border:1.5px solid var(--line);border-radius:var(--radius);padding:14px;}
+  .product-card img{width:78px;height:78px;object-fit:contain;flex:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.12));}
+  .product-card .pc-code{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green-deep);}
+  .product-card .pc-th{font-size:14px;font-weight:700;line-height:1.25;margin-top:2px;}
+  .product-card .pc-en{font-size:10.5px;font-weight:500;color:var(--muted);font-family:var(--mono);margin-top:3px;text-transform:uppercase;letter-spacing:.02em;}
+  .infocard{background:var(--hold-tint);border:1.5px solid #EAD9A8;border-radius:var(--radius-sm);padding:13px 15px;}
+  .infocard .ic-title{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--hold);margin-bottom:8px;}
+  .infocard .ic-title svg{width:16px;height:16px;}
+  .infocard ul{list-style:none;display:flex;flex-direction:column;gap:7px;}
+  .infocard li{font-size:12px;line-height:1.4;color:var(--ink-soft);padding-left:16px;position:relative;}
+  .infocard li::before{content:"";position:absolute;left:2px;top:7px;width:5px;height:5px;border-radius:50%;background:var(--hold);}
+
+  .hint{font-size:11.5px;color:var(--muted);margin-top:-3px;}
+  .err-msg{font-size:11.5px;color:var(--fail);font-weight:600;margin-top:6px;display:none;}
+  .field.invalid .ctrl,.field.invalid .grp,.field.invalid .result-opts,.field.invalid .segment{border-color:var(--fail);}
+  .field.invalid .err-msg{display:block;}
+
+  .savebar{flex:none;display:flex;align-items:center;justify-content:center;gap:7px;font-size:11px;font-weight:600;color:var(--muted);padding:7px;background:var(--surface-2);border-top:1px solid var(--line);}
+  .savebar .sd{width:7px;height:7px;border-radius:50%;background:var(--green);}
+  .savebar.flash{color:var(--green);}
+  .savebar.flash .sd{animation:pulse .9s;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(11,107,58,.5);}100%{box-shadow:0 0 0 7px rgba(11,107,58,0);}}
+
+  footer.nav{flex:none;display:flex;gap:10px;padding:14px 18px;padding-bottom:calc(14px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);}
+  .btn{flex:1;font-family:var(--font);font-size:15px;font-weight:600;border-radius:13px;padding:15px;cursor:pointer;border:1.5px solid transparent;transition:.18s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--green);color:#fff;box-shadow:0 6px 16px rgba(11,107,58,.3);}
+  .btn-primary:hover{background:var(--green-deep);}
+  .btn-ghost{background:#fff;color:var(--ink-soft);border-color:var(--line-strong);flex:0 0 auto;width:54px;}
+  .btn svg{width:18px;height:18px;}
+
+  .review-group{margin:0 22px 16px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .review-group .rg-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:#fff;border-bottom:1px solid var(--line);}
+  .review-group .rg-head .t{font-size:13px;font-weight:700;}
+  .review-group .rg-head .edit{font-size:12px;font-weight:600;color:var(--green-deep);cursor:pointer;background:none;border:none;font-family:var(--font);}
+  .review-row{display:flex;justify-content:space-between;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);}
+  .review-row:last-child{border-bottom:none;}
+  .review-row .k{font-size:12px;color:var(--muted);font-weight:500;flex:1;}
+  .review-row .v{font-size:13px;font-weight:600;text-align:right;font-family:var(--mono);max-width:60%;word-break:break-word;}
+  .review-row .v.empty{color:#C4CABE;font-style:italic;font-family:var(--font);font-weight:400;}
+  .review-photos{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap;}
+  .review-photos img{width:60px;height:60px;border-radius:9px;object-fit:cover;border:1px solid var(--line);}
+
+  .success{position:absolute;inset:0;z-index:30;background:var(--surface);display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 30px;text-align:center;}
+  .success.show{display:flex;animation:fade .4s;}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+  .success .seal{width:96px;height:96px;border-radius:50%;background:var(--green-tint);display:grid;place-items:center;margin-bottom:22px;animation:pop .5s cubic-bezier(.2,1.4,.4,1) .1s backwards;}
+  @keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
+  .success .seal svg{width:48px;height:48px;color:var(--green);}
+  .success h2{font-size:23px;font-weight:700;letter-spacing:-.01em;}
+  .success p{font-size:13.5px;color:var(--ink-soft);margin-top:10px;max-width:280px;}
+  .success .ref{margin-top:18px;font-family:var(--mono);font-size:13px;font-weight:600;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 16px;color:var(--ink-soft);}
+  .success .again{margin-top:26px;background:none;border:none;color:var(--green-deep);font-weight:600;font-size:14px;font-family:var(--font);cursor:pointer;}
+
+  /* review action buttons */
+  .rev-actions{margin:0 22px 18px;display:flex;gap:10px;}
+  .btn-pdf{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;border:1.5px solid var(--brand);color:var(--brand-ink);border-radius:13px;padding:13px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;transition:.15s;}
+  .btn-pdf:active{transform:scale(.98);} .btn-pdf:hover{background:var(--brand-tint);}
+  .btn-pdf svg{width:17px;height:17px;}
+
+  /* PDF preview modal */
+  .pdf-modal{position:fixed;inset:0;z-index:60;background:rgba(20,24,34,.72);display:none;flex-direction:column;}
+  .pdf-modal.show{display:flex;animation:fade .25s;}
+  .pdf-bar{flex:none;display:flex;align-items:center;gap:12px;padding:13px 16px;padding-top:calc(13px + env(safe-area-inset-top));background:var(--charcoal);color:#fff;}
+  .pdf-bar .pt{flex:1;font-size:14px;font-weight:600;}
+  .pdf-bar button{font-family:var(--font);font-size:13px;font-weight:600;border-radius:9px;padding:9px 14px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .pdf-bar .pclose{background:rgba(255,255,255,.16);color:#fff;}
+  .pdf-bar .pprint{background:#fff;color:var(--charcoal);}
+  .pdf-bar button svg{width:15px;height:15px;}
+  .pdf-scroll{flex:1;overflow-y:auto;padding:18px;-webkit-overflow-scrolling:touch;}
+  .pdf-page{background:#fff;max-width:794px;margin:0 auto;border-radius:6px;box-shadow:0 12px 40px rgba(0,0,0,.3);padding:40px 42px;color:#1a1a1a;font-size:13px;}
+  .pdf-page .ph{display:flex;align-items:center;gap:16px;border-bottom:3px solid var(--brand);padding-bottom:16px;margin-bottom:6px;}
+  .pdf-page .ph .plogo{width:84px;height:64px;flex:none;display:grid;place-items:center;}
+  .pdf-page .ph .plogo img{max-width:100%;max-height:100%;object-fit:contain;}
+  .pdf-page .ph .ptt{flex:1;}
+  .pdf-page .ph .ptt .pbrand{font-size:18px;font-weight:700;color:var(--brand-ink);}
+  .pdf-page .ph .ptt .pdoc{font-size:13px;font-weight:600;color:#444;margin-top:2px;}
+  .pdf-page .ph .pmeta{text-align:right;font-family:var(--mono);font-size:10.5px;color:#666;line-height:1.6;}
+  .pdf-minor{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#999;font-weight:600;margin-bottom:14px;}
+  .pdf-sec{margin-top:16px;}
+  .pdf-sec h3{font-size:12px;font-weight:700;color:var(--brand-ink);text-transform:uppercase;letter-spacing:.05em;padding-bottom:5px;border-bottom:1.5px solid #E5E5E5;margin-bottom:2px;}
+  .pdf-tr{display:flex;justify-content:space-between;gap:18px;padding:6px 2px;border-bottom:1px solid #F0F0F0;}
+  .pdf-tr .k{color:#555;flex:1;}
+  .pdf-tr .v{font-weight:600;text-align:right;max-width:60%;}
+  .pdf-photos{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .pdf-photos img{width:90px;height:90px;object-fit:cover;border-radius:5px;border:1px solid #ddd;}
+  .pdf-specdoc img{max-width:100%;border:1px solid #ddd;border-radius:5px;margin-top:8px;}
+  .pdf-sign{margin-top:34px;display:flex;justify-content:space-between;gap:30px;}
+  .pdf-sign .sbox{flex:1;text-align:center;}
+  .pdf-sign .sline{border-top:1.5px solid #333;margin-bottom:6px;padding-top:6px;}
+  .pdf-sign .snm{font-weight:600;font-size:12px;} .pdf-sign .sps{font-size:11px;color:#666;}
+
+  @media print{
+    body *{visibility:hidden !important;}
+    #pdfModal,#pdfModal *{visibility:visible !important;}
+    #pdfModal{position:absolute;inset:0;background:#fff;display:block !important;}
+    .pdf-bar{display:none !important;}
+    .pdf-scroll{overflow:visible;padding:0;}
+    .pdf-page{box-shadow:none;margin:0;max-width:none;border-radius:0;padding:0;}
+    @page{size:A4;margin:14mm;}
+  }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#16294D"/><text x="50" y="44" font-family="sans-serif" font-size="15" font-weight="bold" fill="#fff" text-anchor="middle">MINOR</text><text x="50" y="64" font-family="sans-serif" font-size="9" fill="#C9A24B" text-anchor="middle" letter-spacing="1">PRODUCT SPEC</text></svg>
+</template>
+<div class="app" id="app">
+  <div class="minorbar">
+    <span class="mlogo"><span class="dot">▪</span> MINOR</span>
+    <span class="msub">Food · Quality Assurance</span>
+    <span class="mqa">Product Spec</span>
+  </div>
+  <header class="top">
+    <div class="brand">
+      <div class="brand-logo-chip"><img id="brandLogo" src="assets/brands/pizzacompany.png" alt="brand logo"></div>
+      <div class="brand-txt">
+        <h1 id="brandName">The Pizza Company</h1>
+        <p>ใบข้อมูลจำเพาะสินค้า · Product Spec</p>
+      </div>
+      <div class="doc-ref"><div class="lbl">Form</div><div class="val">QA-PIS-01</div></div>
+    </div>
+    <nav class="stepper" id="stepper"></nav>
+  </header>
+
+  <main class="body" id="body"></main>
+
+  <div class="savebar" id="savebar"><span class="sd"></span><span id="saveTxt">บันทึกอัตโนมัติ</span></div>
+  <footer class="nav" id="footnav"></footer>
+
+  <div class="success" id="success">
+    <div class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <h2>ส่งข้อมูลเรียบร้อย</h2>
+    <p>บันทึกข้อมูลจำเพาะสินค้าเข้าสู่ระบบแล้ว ทีมงานจะตรวจสอบและอนุมัติข้อมูลต่อไป</p>
+    <div class="ref" id="successRef">REF —</div>
+    <button class="again" id="againBtn">+ กรอกข้อมูลสินค้าใหม่</button>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<div class="pdf-modal" id="pdfModal">
+  <div class="pdf-bar">
+    <button class="pclose" id="pdfClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>ปิด</button>
+    <span class="pt">ตัวอย่างเอกสาร</span>
+    <button class="pprint" id="pdfPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>บันทึก PDF</button>
+  </div>
+  <div class="pdf-scroll"><div class="pdf-page" id="pdfPage"></div></div>
+</div>
+
+<script>
+const TODAY = new Date().toISOString().slice(0,10);
+
+const BRANDS={
+  "The Pizza Company":{logo:"assets/brands/pizzacompany.png",c:"#008555",ink:"#006B45",qa:["QA Manager – The Pizza Company","QA Supervisor – The Pizza Company"]},
+  "The Coffee Club":{logo:"assets/brands/coffeeclub.jpg",c:"#1A1A1A",ink:"#1A1A1A",qa:["QA Manager – The Coffee Club","QA Supervisor – The Coffee Club"]},
+  "Bonchon":{logo:"assets/brands/bonchon.png",c:"#E2211C",ink:"#BC1218",qa:["QA Manager – Bonchon","QA Supervisor – Bonchon"]},
+  "Burger King":{logo:"assets/brands/burgerking.png",c:"#E8451C",ink:"#C0330E",qa:["QA Manager – Burger King","QA Supervisor – Burger King"]},
+  "Dairy Queen":{logo:"assets/brands/dq.png",c:"#EE3E42",ink:"#CF2027",qa:["QA Manager – Dairy Queen","QA Supervisor – Dairy Queen"]},
+  "Sizzler":{logo:"assets/brands/sizzler.png",c:"#00643C",ink:"#00522F",qa:["QA Manager – Sizzler","QA Supervisor – Sizzler"]},
+  "Swensen's":{logo:"assets/brands/swensens.png",c:"#EA040F",ink:"#C5070F",qa:["QA Manager – Swensen's","QA Supervisor – Swensen's"]},
+  "GaGa":{logo:"assets/brands/gaga.png",c:"#1A1A1A",ink:"#1A1A1A",qa:["QA Manager – GaGa","QA Supervisor – GaGa"]},
+  "The Steak & More":{logo:"assets/brands/tsm.png",c:"#FF5500",ink:"#D9430A",qa:["QA Manager – The Steak & More","QA Supervisor – The Steak & More"]},
+  "Minor Dairy":{logo:"assets/brands/minordairy.png",c:"#23316A",ink:"#1B2752",qa:["QA Manager – Minor Dairy","QA Supervisor – Minor Dairy"]},
+  "Minor Hotels":{logo:"assets/brands/minorhotels.png",c:"#16294D",ink:"#16294D",qa:["QA Manager – Minor Hotels","QA Supervisor – Minor Hotels"]},
+};
+const BRAND_NAMES=Object.keys(BRANDS);
+function hexA(hex,a){const h=hex.replace('#','');return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;}
+function applyBrand(name){
+  const b=BRANDS[name]||BRANDS["The Pizza Company"];
+  const r=document.documentElement.style;
+  r.setProperty("--brand",b.c); r.setProperty("--brand-ink",b.ink); r.setProperty("--brand-tint",hexA(b.c,0.14));
+  const lg=document.getElementById("brandLogo"); if(lg)lg.src=b.logo;
+  const nm=document.getElementById("brandName"); if(nm)nm.textContent=name;
+  // approver must be the QA of the selected brand → auto-set to that brand's QA
+  if(b.qa&&b.qa.length){ state.data.approved_by=b.qa[0]; save(false); }
+  const w=document.querySelector('.field[data-key="approved_by"]');
+  if(w){ const f=STEPS.flatMap(s=>s.fields).find(x=>x.key==="approved_by"); const nf=renderField(f); w.replaceWith(nf); bindQaPick(nf); }
+}
+
+const STEPS = [
+  { id:"identity", tick:"สินค้า", title:"ข้อมูลสินค้า", sub:"Product identity",
+    fields:[
+      {key:"brand", th:"แบรนด์", en:"BRAND", type:"brandpick", required:true, options:BRAND_NAMES, value:"The Pizza Company"},
+      {type:"specscan"},
+      {type:"product"},
+      {key:"gallery", th:"ภาพประกอบสินค้า (เพิ่มได้หลายภาพ)", en:"PRODUCT PHOTOS", type:"multiphotos"},
+      {key:"product_code", th:"รหัสสินค้า", en:"PRODUCT CODE", type:"select", required:true, allowOther:true, options:["1000038213"]},
+      {key:"product_th", th:"ชื่อสินค้า (ไทย)", en:"NAME TH", type:"text", required:true, value:"แป้งครัวซองค์พิซซ่าแช่แข็งขนาด 8 นิ้ว"},
+      {key:"product_en", th:"ชื่อสินค้า (อังกฤษ)", en:"NAME EN", type:"text", value:'CROISSANT-PIZZA DOUGH 8" FROZEN'},
+      {key:"size_inch", th:"ขนาด", en:"SIZE", type:"select", required:true, options:['6 นิ้ว','8 นิ้ว','10 นิ้ว','12 นิ้ว'], value:"8 นิ้ว"},
+      {key:"pack", th:"บรรจุต่อกล่อง", en:"PACK / CASE", type:"select", allowOther:true, options:["20 PC/CASE","10 PC/CASE","24 PC/CASE"], value:"20 PC/CASE"},
+      {key:"appearance", th:"ลักษณะสินค้า", en:"APPEARANCE", type:"select", allowOther:true,
+        options:["สีขาว เนื้อสัมผัสแข็ง มีกลิ่นและรสข้าวสาลีและเนยชัดเจน","สีขาวนวล เนื้อแน่น","สีขาว ผิวเรียบ"]},
+    ]},
+  { id:"allergen", tick:"แพ้/ฮาลาล", title:"สารก่อภูมิแพ้ และฮาลาล", sub:"Allergens & Halal",
+    fields:[
+      {key:"allergens", th:"สารที่ก่อให้เกิดอาการแพ้", en:"FOOD ALLERGEN", type:"checks", allowOther:true,
+        options:["ข้าวสาลี","ไข่","ถั่วเหลือง","นม","ถั่วลิสง","ถั่วเปลือกแข็ง","กลูเตน"], value:["ข้าวสาลี","ไข่","ถั่วเหลือง"]},
+      {key:"halal", th:"การรับรองฮาลาล", en:"HALAL CERTIFIED", type:"segment", required:true,
+        options:[{value:"YES",label:"ได้รับรอง (YES)",tone:"yes"},{value:"NO",label:"ไม่รับรอง (NO)",tone:"no"}]},
+      {key:"halal_no", th:"เลขที่ใบรับรองฮาลาล", en:"HALAL CERT NO.", type:"text", placeholder:"กรอกเมื่อได้รับรอง", showIf:{key:"halal",eq:"YES"}},
+    ]},
+  { id:"physical", tick:"กายภาพ", title:"มาตรฐานทางกายภาพ", sub:"Physical standards (min–max)",
+    fields:[
+      {key:"w_box", th:"น้ำหนักต่อกล่อง", en:"WEIGHT / CASE", type:"range", unit:"กรัม", min:4000, max:4400},
+      {key:"w_bag", th:"น้ำหนักต่อถุง", en:"WEIGHT / BAG", type:"range", unit:"กรัม", min:2000, max:2200},
+      {key:"w_pc", th:"น้ำหนักต่อชิ้น", en:"WEIGHT / PC", type:"range", unit:"กรัม", min:200, max:220},
+      {key:"len_pc", th:"ความยาวต่อชิ้น", en:"LENGTH / PC", type:"range", unit:"ซม.", min:19, max:21},
+      {key:"wid_pc", th:"ความกว้างต่อชิ้น", en:"WIDTH / PC", type:"range", unit:"ซม.", min:19, max:21},
+    ]},
+  { id:"storage", tick:"จัดเก็บ", title:"อุณหภูมิและอายุการจัดเก็บ", sub:"Temperature & shelf life",
+    fields:[
+      {key:"store_temp", th:"อุณหภูมิจัดเก็บ (แช่แข็ง)", en:"STORAGE TEMP", type:"range", unit:"°C", min:-25, max:-18},
+      {key:"shelf_unopened", th:"อายุสินค้า — ยังไม่เปิดถุง (แช่แข็ง)", en:"SHELF · UNOPENED", type:"numstepper", unit:"เดือน", step:1, value:6},
+      {key:"shelf_opened", th:"อายุสินค้า — เปิดปากถุง (แช่แข็ง)", en:"SHELF · OPENED", type:"numstepper", unit:"เดือน", step:1, value:1},
+      {key:"shelf_proofed", th:"อายุสินค้า — หลังพรู๊ฟ (แช่เย็น)", en:"SHELF · PROOFED", type:"numstepper", unit:"ชั่วโมง", step:1, value:9},
+      {key:"recv_temp", th:"อุณหภูมิ ณ จุดรับ — ไม่สูงกว่า", en:"TEMP AT RECEIVING ≤", type:"number", unit:"°C", value:-12},
+    ]},
+  { id:"defects", tick:"ตำหนิ", title:"ตำหนิและเกณฑ์การยอมรับ", sub:"Defects & acceptance criteria",
+    fields:[
+      {key:"zero_tolerance", th:"เกณฑ์ “ต้องไม่พบ” (ยืนยันรายการ)", en:"ZERO TOLERANCE", type:"checks",
+        options:["สิ่งแปลกปลอม","สินค้าละลาย เสียสภาพ แตกหัก","สินค้ามีกลิ่นบูด เน่าเสีย","ถุงและกล่องขาด บุบ ยุบ"],
+        value:["สิ่งแปลกปลอม","สินค้าละลาย เสียสภาพ แตกหัก","สินค้ามีกลิ่นบูด เน่าเสีย","ถุงและกล่องขาด บุบ ยุบ"]},
+      {key:"accept", th:"ลักษณะที่ยอมรับได้ (Accept)", en:"ACCEPT", type:"checks", allowOther:true,
+        options:["มีรอยต่อ","โค้งเว้า"], value:["มีรอยต่อ","โค้งเว้า"]},
+      {key:"reject", th:"ลักษณะที่ไม่ยอมรับ (Reject)", en:"REJECT", type:"checks", tone:"reject", allowOther:true,
+        options:["แหว่ง","ฉีก","แตก"], value:["แหว่ง","ฉีก","แตก"]},
+      {type:"info", title:"ข้อควรระวัง", items:[
+        "ตรวจสอบสินค้าทันทีเมื่อได้รับ หากแตกหัก/เสียหายจนใช้งานไม่ได้ ให้ปฏิเสธรับและคืนที่หน้างานทันที",
+        "ระวังการละลาย — จัดเก็บเข้าตู้แช่แข็งทันทีหลังรับสินค้า",
+        "ห้ามนำสินค้าที่ละลายแล้วกลับไปแช่แข็งซ้ำ",
+        "หลีกเลี่ยงการกดทับหรือวางซ้อนกันอย่างไม่เหมาะสม",
+      ]},
+      {key:"custom_fields", th:"ข้อมูลเพิ่มเติม (กำหนดเอง)", en:"ADDITIONAL FIELDS", type:"customfields"},
+      {key:"prepared_by", th:"ผู้จัดทำ / ผู้ส่งข้อมูล", en:"PREPARED BY", type:"text", required:true, placeholder:"ชื่อ–นามสกุล"},
+      {key:"position", th:"ตำแหน่ง", en:"POSITION", type:"select", required:true, allowOther:true,
+        options:["QA Manager","QA Officer","R&D Specialist","Product Manager","Supplier QA"]},
+      {key:"approved_by", th:"ผู้อนุมัติ (QA ประจำแบรนด์)", en:"APPROVED BY · QA", type:"qapick", required:true},
+    ]},
+];
+
+const LS_KEY = "croissant_spec_v1";
+let state = { step:0, data:{}, gallery:[] };
+try{ const s=JSON.parse(localStorage.getItem(LS_KEY)); if(s) state=Object.assign({step:0,data:{},gallery:[]},s); }catch(e){}
+// seed defaults
+STEPS.forEach(s=>s.fields.forEach(f=>{ if(f.key && state.data[f.key]===undefined && f.value!==undefined) state.data[f.key]=f.value; }));
+STEPS.forEach(s=>s.fields.forEach(f=>{ if(f.type==="range"){ if(state.data[f.key+"_min"]===undefined)state.data[f.key+"_min"]=f.min; if(state.data[f.key+"_max"]===undefined)state.data[f.key+"_max"]=f.max; } }));
+
+const REVIEW_INDEX = STEPS.length;
+let saveTimer=null;
+function save(flash){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  catch(e){ try{ localStorage.setItem(LS_KEY, JSON.stringify(Object.assign({},state,{gallery:[]}))); }catch(_){} }
+  if(flash!==false) pingSave();
+}
+function pingSave(){
+  const bar=document.getElementById("savebar"),txt=document.getElementById("saveTxt");
+  if(!bar)return; bar.classList.add("flash"); txt.textContent="บันทึกแล้ว";
+  clearTimeout(saveTimer); saveTimer=setTimeout(()=>{bar.classList.remove("flash");txt.textContent="บันทึกอัตโนมัติ";},1100);
+}
+function val(k){ return state.data[k]; }
+function setVal(k,v){ state.data[k]=v; save(); }
+
+const $ = (s,el=document)=>el.querySelector(s);
+const body=$("#body"),footnav=$("#footnav"),stepperEl=$("#stepper");
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function loadScaled(file,cb){
+  const r=new FileReader();
+  r.onload=()=>{const img=new Image();img.onload=()=>{let w=img.width,h=img.height,max=1100;if(w>h&&w>max){h=Math.round(h*max/w);w=max;}else if(h>=w&&h>max){w=Math.round(w*max/h);h=max;}const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);cb(c.toDataURL("image/jpeg",0.72));};img.src=r.result;};
+  r.readAsDataURL(file);
+}
+
+/* ===== Spec photo OCR + auto-fill ===== */
+function toast(msg,ms){
+  const t=document.getElementById("toast");
+  t.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>${esc(msg)}</span>`;
+  t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"), ms||3200);
+}
+function setScanProgress(pct,label){
+  const card=document.getElementById("specscan"); if(!card)return;
+  card.classList.add("busy");
+  const bar=card.querySelector(".ss-prog .bar i"), lbl=card.querySelector(".ss-prog .lbl");
+  if(bar)bar.style.width=Math.round(pct*100)+"%";
+  if(lbl)lbl.textContent=label||("กำลังอ่านข้อมูล… "+Math.round(pct*100)+"%");
+}
+function endScanBusy(){ const card=document.getElementById("specscan"); if(card)card.classList.remove("busy"); }
+
+// auto-pull the scanned spec image into the Product Photos gallery (replace previous spec-derived one on re-scan)
+function syncSpecToGallery(d){
+  if(!state.gallery) state.gallery=[];
+  if(state.specGalleryRef){ const i=state.gallery.indexOf(state.specGalleryRef); if(i>=0) state.gallery.splice(i,1); }
+  state.gallery.unshift(d); state.specGalleryRef=d;
+}
+
+async function runSpecScan(file){
+  // keep a downscaled copy as the attached spec image AND auto-pull it into Product Photos
+  loadScaled(file, d=>{ state.specPhoto=d; syncSpecToGallery(d); save(false); });
+  setScanProgress(0.02,"กำลังเตรียมรูป…");
+  let text="";
+  try{
+    if(typeof Tesseract==="undefined") throw new Error("ocr-unavailable");
+    const res=await Tesseract.recognize(file, "tha+eng", {
+      logger:m=>{ if(m.status==="recognizing text") setScanProgress(0.15+m.progress*0.7, "กำลังอ่านข้อมูล… "+Math.round(m.progress*100)+"%");
+        else setScanProgress(0.1,"กำลังโหลดตัวอ่าน…"); }
+    });
+    text=(res&&res.data&&res.data.text)||"";
+  }catch(err){
+    endScanBusy();
+    state.specNote="แนบรูปแล้ว — อ่านอัตโนมัติไม่สำเร็จ กรุณากรอกเอง";
+    save(false); renderStep();
+    toast("แนบรูปสเปคแล้ว แต่ยังอ่านอัตโนมัติไม่ได้",3600);
+    return;
+  }
+  setScanProgress(0.9,"กำลังแยกข้อมูล…");
+  let filled=0;
+  try{ filled=await parseAndFill(text); }
+  catch(e){ filled=regexFill(text); }
+  endScanBusy();
+  state.specNote = filled>0 ? ("กรอกอัตโนมัติ "+filled+" ช่อง + เพิ่มรูปลงภาพสินค้าแล้ว") : "เพิ่มรูปลงภาพสินค้าแล้ว — ไม่พบหัวข้อที่ตรงกัน";
+  save(false); renderStep();
+  toast(filled>0 ? ("✓ กรอกอัตโนมัติ "+filled+" ช่อง + เพิ่มรูปสินค้าแล้ว") : "เพิ่มรูปลงภาพสินค้าแล้ว ลองถ่ายให้ชัดขึ้น", 3800);
+}
+
+// Ask Claude to map OCR text -> structured spec JSON
+async function parseAndFill(text){
+  if(!(window.claude&&window.claude.complete)) return regexFill(text);
+  const prompt=`คุณเป็นตัวช่วยแยกข้อมูลจากใบสเปคสินค้า (ภาษาไทย/อังกฤษ) ที่ผ่าน OCR มาแบบไม่สมบูรณ์
+ดึงเฉพาะค่าที่พบจริง แล้วตอบกลับเป็น JSON อย่างเดียว (ไม่มีคำอธิบาย) ตามคีย์เหล่านี้ (เว้นคีย์ที่ไม่พบ):
+product_code(เลขรหัสสินค้า), product_th, product_en, size_inch(เช่น "8 นิ้ว"),
+w_box_min,w_box_max,w_bag_min,w_bag_max,w_pc_min,w_pc_max,len_pc_min,len_pc_max,wid_pc_min,wid_pc_max(ตัวเลขล้วน),
+store_temp_min,store_temp_max,recv_temp(ตัวเลขติดลบได้),
+shelf_unopened,shelf_opened(หน่วยเดือน),shelf_proofed(หน่วยชั่วโมง),
+halal("YES"/"NO"), halal_no,
+allergens(อาเรย์ เช่น ["ข้าวสาลี","ไข่"]).
+ข้อความ OCR:
+"""${text.slice(0,2400)}"""`;
+  let out="";
+  try{ out=await window.claude.complete({messages:[{role:"user",content:prompt}]}); }
+  catch(e){ return regexFill(text); }
+  const m=out&&out.match(/\{[\s\S]*\}/);
+  if(!m) return regexFill(text);
+  let obj; try{ obj=JSON.parse(m[0]); }catch(e){ return regexFill(text); }
+  return applySpec(obj);
+}
+
+function applySpec(obj){
+  let n=0;
+  const num=v=>{ if(v==null||v==="")return null; const x=parseFloat(String(v).replace(/[^\d.\-]/g,"")); return isNaN(x)?null:x; };
+  const setIf=(k,v)=>{ if(v!=null&&v!==""){ state.data[k]=v; n++; } };
+  const setNum=(k,v)=>{ const x=num(v); if(x!=null){ state.data[k]=x; n++; } };
+  setIf("product_code", obj.product_code && String(obj.product_code).replace(/[^\d]/g,""));
+  setIf("product_th", obj.product_th); setIf("product_en", obj.product_en);
+  if(obj.size_inch){ const s=String(obj.size_inch).match(/\d+/); if(s){ state.data.size_inch=s[0]+" นิ้ว"; n++; } }
+  ["w_box","w_bag","w_pc","len_pc","wid_pc","store_temp"].forEach(k=>{ setNum(k+"_min",obj[k+"_min"]); setNum(k+"_max",obj[k+"_max"]); });
+  setNum("recv_temp",obj.recv_temp);
+  setNum("shelf_unopened",obj.shelf_unopened); setNum("shelf_opened",obj.shelf_opened); setNum("shelf_proofed",obj.shelf_proofed);
+  if(obj.halal && /^(YES|NO)$/i.test(String(obj.halal).trim())){ state.data.halal=String(obj.halal).trim().toUpperCase(); n++; }
+  setIf("halal_no", obj.halal_no);
+  if(Array.isArray(obj.allergens) && obj.allergens.length){ state.data.allergens=obj.allergens.map(String); n++; }
+  save(false);
+  return n;
+}
+
+// Fallback: pull obvious ranges/numbers via regex when Claude isn't available
+function regexFill(text){
+  const t=(text||"").replace(/\s+/g," ");
+  const obj={};
+  const code=t.match(/\b(10\d{8})\b/); if(code)obj.product_code=code[1];
+  const grab=(re)=>{ const m=t.match(re); return m?m:null; };
+  let m;
+  if((m=grab(/(\d{3,5})\s*[-–]\s*(\d{3,5})\s*กรัม\s*ต่อ\s*กล่อง/))||(m=grab(/กล่อง[^\d]{0,12}(\d{3,5})\s*[-–]\s*(\d{3,5})/))){obj.w_box_min=m[1];obj.w_box_max=m[2];}
+  if((m=grab(/(\d{3,5})\s*[-–]\s*(\d{3,5})\s*กรัม\s*ต่อ\s*ถุง/))||(m=grab(/ถุง[^\d]{0,12}(\d{3,5})\s*[-–]\s*(\d{3,5})/))){obj.w_bag_min=m[1];obj.w_bag_max=m[2];}
+  if((m=grab(/(\d{2,4})\s*[-–]\s*(\d{2,4})\s*กรัม\s*ต่อ\s*ชิ้น/))){obj.w_pc_min=m[1];obj.w_pc_max=m[2];}
+  if((m=grab(/ยาว[^\d]{0,10}(\d{1,3})\s*[-–]\s*(\d{1,3})/))){obj.len_pc_min=m[1];obj.len_pc_max=m[2];}
+  if((m=grab(/กว้าง[^\d]{0,10}(\d{1,3})\s*[-–]\s*(\d{1,3})/))){obj.wid_pc_min=m[1];obj.wid_pc_max=m[2];}
+  if((m=grab(/-?\s*(\d{2})\s*°?\s*c\s*ถึง\s*-?\s*(\d{2})/i))){obj.store_temp_min=-Math.max(+m[1],+m[2]);obj.store_temp_max=-Math.min(+m[1],+m[2]);}
+  if((m=grab(/ไม่สูงกว่า\s*-?\s*(\d{1,2})/))){obj.recv_temp=-Math.abs(+m[1]);}
+  if(/ฮาลาล/.test(t)) obj.halal = /ฮาลาล[^a-zA-Zก-๙]{0,30}(yes|ได้รับรอง)/i.test(t)?"YES":(/ฮาลาล[^a-zA-Zก-๙]{0,30}(no|ไม่)/i.test(t)?"NO":undefined);
+  const al=[]; ["ข้าวสาลี","ไข่","ถั่วเหลือง","นม","ถั่วลิสง","กลูเตน"].forEach(a=>{ if(t.includes(a))al.push(a); }); if(al.length)obj.allergens=al;
+  return applySpec(obj);
+}
+
+function renderStepper(){
+  stepperEl.innerHTML="";
+  const cur=Math.min(state.step,REVIEW_INDEX);
+  STEPS.forEach((s,i)=>{
+    if(i>0){const bar=document.createElement("div");bar.className="bar";const fill=document.createElement("i");fill.style.width=(cur>i?"100%":cur===i?"50%":"0%");bar.appendChild(fill);stepperEl.appendChild(bar);}
+    const node=document.createElement("div");node.className="node";node.dataset.state=cur>i?"done":cur===i?"active":"todo";
+    const dot=document.createElement("div");dot.className="dot";
+    dot.innerHTML=cur>i?'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>':(i+1);
+    node.appendChild(dot);node.onclick=()=>{if(i<=(state.maxStep||0))goTo(i);};stepperEl.appendChild(node);
+  });
+}
+
+function fieldLabel(f){ return `<label class="flabel"><span class="th">${esc(f.th)}${f.required?'<span class="req"> *</span>':''}</span>${f.en?`<span class="en">${esc(f.en)}</span>`:''}</label>`; }
+
+function renderField(f){
+  const wrap=document.createElement("div");wrap.className="field";wrap.dataset.key=f.key||f.type;
+  if(f.showIf){ const ok=val(f.showIf.key)===f.showIf.eq; if(!ok) wrap.style.display="none"; }
+  let html="";
+
+  if(f.type==="product"){
+    html=`<div class="product-card"><img src="assets/croissant-dough.png" alt="">
+      <div><div class="pc-code">${esc(val("product_code")||"1000038213")}</div>
+      <div class="pc-th">แป้งครัวซองค์พิซซ่าแช่แข็ง 8″</div>
+      <div class="pc-en">Croissant-Pizza Dough · Frozen</div></div></div>`;
+    wrap.innerHTML=html;return wrap;
+  }
+  if(f.type==="specscan"){
+    const ph=state.specPhoto;
+    html=`<div class="specscan" id="specscan">
+      <div class="ss-top">
+        <div class="ss-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10M9 9h6M9 15h4"/></svg></div>
+        <div class="ss-tt"><b>ถ่าย/แนบรูปสเปคสินค้า</b><span>ระบบจะอ่านข้อมูลและกรอกช่องที่ตรงกันให้อัตโนมัติ</span></div>
+      </div>
+      <button type="button" class="ss-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-4l-1.5-2Z"/><circle cx="12" cy="13" r="3.3"/></svg>${ph?'สแกนรูปสเปคใหม่':'ถ่ายรูป / เลือกรูปสเปค'}<input type="file" accept="image/*" capture="environment" class="spec-input"></button>
+      <div class="ss-prog"><div class="bar"><i></i></div><div class="lbl">กำลังเตรียม…</div></div>
+      ${ph?`<div class="ss-done"><img src="${ph}"><div class="dt"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>แนบสเปคแล้ว</b><span>${esc(state.specNote||'อ่านข้อมูลจากรูปเรียบร้อย')}</span></div></div>`:''}
+    </div>`;
+    wrap.innerHTML=html;return wrap;
+  }
+  if(f.type==="info"){
+    html=`<div class="infocard"><div class="ic-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>${esc(f.title)}</div><ul>${f.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul></div>`;
+    wrap.innerHTML=html;return wrap;
+  }
+
+  html=fieldLabel(f);
+  if(f.type==="text"||f.type==="date"){
+    html+=`<input class="ctrl" type="${f.type}" data-k="${f.key}" placeholder="${esc(f.placeholder||'')}" value="${esc(val(f.key)||'')}">`;
+  } else if(f.type==="number"){
+    html+=`<div class="unitwrap"><input class="ctrl" type="number" inputmode="decimal" step="any" data-k="${f.key}" placeholder="${esc(f.placeholder||'')}" value="${esc(val(f.key)??'')}">${f.unit?`<span class="unit">${esc(f.unit)}</span>`:''}</div>`;
+  } else if(f.type==="textarea"){
+    html+=`<textarea class="ctrl" data-k="${f.key}" placeholder="${esc(f.placeholder||'')}">${esc(val(f.key)||'')}</textarea>`;
+  } else if(f.type==="brandpick"){
+    const cur=val(f.key); const b=BRANDS[cur];
+    html+=`<div class="brandpick" data-k="${f.key}">
+      <button type="button" class="bp-trigger" aria-haspopup="listbox">
+        ${b?`<span class="bp-chip"><img src="${b.logo}" alt=""></span>`:'<span class="bp-chip empty"></span>'}
+        <span class="bp-name ${cur?'':'ph'}">${cur?esc(cur):'เลือกแบรนด์…'}</span>
+        <span class="bp-caret"></span>
+      </button>
+      <div class="bp-menu" role="listbox">${f.options.map(o=>{const bb=BRANDS[o];return `<button type="button" class="bp-opt ${cur===o?'on':''}" data-val="${esc(o)}" role="option"><span class="bp-chip"><img src="${bb?bb.logo:''}" alt=""></span><span class="bp-optname">${esc(o)}</span>${cur===o?'<span class="bp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>':''}</button>`;}).join("")}</div>
+    </div>`;
+  } else if(f.type==="qapick"){
+    const bname=val("brand"), b=BRANDS[bname], list=(b&&b.qa)||[];
+    let cur=val(f.key); if(cur==null||cur==="") cur=list[0]||"";
+    const opts=[`<option value="" ${!cur?'selected':''} disabled hidden>เลือกผู้อนุมัติ…</option>`]
+      .concat(list.map(o=>`<option value="${esc(o)}" ${cur===o?'selected':''}>${esc(o)}</option>`)).join("");
+    html+=`<div class="qapick" data-k="${f.key}">
+      <div class="qa-brand">${b?`<span class="qa-logo"><img src="${b.logo}" alt=""></span>`:''}<span class="qa-bn">QA ประจำแบรนด์ <b>${esc(bname||'—')}</b></span></div>
+      <div class="selwrap"><select class="ctrl qa-select" data-k="${f.key}">${opts}</select></div>
+    </div>`;
+  } else if(f.type==="select"){ html+=selectHTML(f); }
+  else if(f.type==="range"){
+    html+=`<div class="grp"><div class="range-row">
+      <input class="mini" type="number" inputmode="decimal" step="any" data-k="${f.key}_min" value="${esc(val(f.key+'_min')??'')}">
+      <span class="dash">–</span>
+      <input class="mini" type="number" inputmode="decimal" step="any" data-k="${f.key}_max" value="${esc(val(f.key+'_max')??'')}">
+      <span class="rng-unit">${esc(f.unit||'')}</span></div></div>`;
+  } else if(f.type==="numstepper"){
+    const cv=val(f.key)??"";
+    html+=`<div class="numstep" data-k="${f.key}" data-step="${f.step||1}"><button type="button" class="mb" data-act="dec">−</button><div class="ns-wrap"><input class="ns-input" type="number" inputmode="numeric" value="${esc(cv)}">${f.unit?`<span class="ns-unit">${esc(f.unit)}</span>`:''}</div><button type="button" class="mb" data-act="inc">+</button></div>`;
+  } else if(f.type==="segment"){
+    html+=`<div class="segment" data-k="${f.key}">`+f.options.map(o=>`<button type="button" class="segbtn ${val(f.key)===o.value?'on':''}" data-val="${esc(o.value)}" data-tone="${o.tone}"><span class="sc"></span>${esc(o.label)}</button>`).join("")+`</div>`;
+  } else if(f.type==="checks"){
+    const cur=val(f.key)||[],otherVal=val(f.key+"_other")||"",otherOn=f.allowOther&&otherVal!=="";
+    html+=`<div class="checks" data-k="${f.key}">`+
+      f.options.map(o=>`<label class="chk ${f.tone==='reject'?'reject':''} ${cur.includes(o)?'on':''}"><input type="checkbox" value="${esc(o)}" ${cur.includes(o)?'checked':''}><span class="cbox"></span><span class="ctext">${esc(o)}</span></label>`).join("")+
+      (f.allowOther?`<label class="chk ${f.tone==='reject'?'reject':''} ${otherOn?'on':''}" data-otherchk="1"><input type="checkbox" ${otherOn?'checked':''}><span class="cbox"></span><span class="ctext">อื่นๆ</span></label>`:'')+
+    `</div>`+
+    (f.allowOther?`<input class="ctrl other-input" data-otherfor="${f.key}_other" placeholder="ระบุเพิ่มเติม…" value="${esc(otherVal)}" style="margin-top:9px;display:${otherOn?'block':'none'}">`:'');
+  } else if(f.type==="multiphotos"){
+    html+=`<div class="gallery" data-k="${f.key}">`+
+      state.gallery.map((src,i)=>`<div class="gphoto"><img src="${src}"><button type="button" class="gdel" data-gdel="${i}">×</button></div>`).join("")+
+      `<label class="gadd"><input type="file" accept="image/*" capture="environment" multiple class="gallery-input"><span class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span>เพิ่มภาพ</span></span></label></div>`;
+  } else if(f.type==="customfields"){
+    const rows=val(f.key)||[];
+    html+=`<div class="cfields" data-k="${f.key}">`+
+      rows.map((r,i)=>`<div class="cfrow" data-ci="${i}">
+        <input class="mini cf-label" data-ci="${i}" placeholder="หัวข้อ" value="${esc(r.label||'')}">
+        <input class="mini cf-value" data-ci="${i}" placeholder="ข้อมูล" value="${esc(r.value||'')}">
+        <button type="button" class="cf-del" data-ci="${i}">×</button>
+      </div>`).join("")+
+      `</div>
+      <button type="button" class="cf-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>เพิ่มข้อมูลอื่น</button>`;
+  } else if(f.type==="result"){
+    html+=`<div class="result-opts">`+f.options.map(o=>{const sel=val(f.key)===o.value;return `<div class="ropt ${o.tone} ${sel?'sel':''}" data-result="${esc(o.value)}"><span class="rdot"></span><span><span class="rtxt">${esc(o.th)}</span><br><span class="rsub">${esc(o.sub)}</span></span></div>`;}).join("")+`</div>`;
+  }
+  html+=`<div class="err-msg">กรุณากรอกข้อมูลนี้</div>`;
+  wrap.innerHTML=html;return wrap;
+}
+
+function selectHTML(f){
+  const cur=val(f.key),isOther=f.allowOther&&cur!=null&&cur!==""&&!f.options.includes(cur);
+  const opts=[`<option value="" ${!cur?'selected':''} disabled hidden>เลือก…</option>`].concat(f.options.map(o=>`<option value="${esc(o)}" ${cur===o?'selected':''}>${esc(o)}</option>`));
+  if(f.allowOther) opts.push(`<option value="__other__" ${isOther?'selected':''}>อื่นๆ (พิมพ์เอง)…</option>`);
+  return `<div class="selwrap"><select class="ctrl ${cur?'':'placeheld'}" data-k="${f.key}" data-other="${f.allowOther?1:0}">${opts.join("")}</select></div>
+    <input class="ctrl other-input" data-otherfor="${f.key}" placeholder="ระบุ…" value="${esc(isOther?cur:'')}" style="margin-top:9px;display:${isOther?'block':'none'}">`;
+}
+
+function renderStep(){
+  body.scrollTop=0;
+  if(state.step===REVIEW_INDEX){ renderReview(); renderNav(); renderStepper(); return; }
+  const s=STEPS[state.step];
+  body.innerHTML=`<div class="step-head"><div class="step-kicker"><span class="seg">ขั้นที่ ${state.step+1}/${STEPS.length}</span> · ${esc(s.tick)}</div><h2>${esc(s.title)}</h2><div class="sub">${esc(s.sub)}</div></div><div class="fields" id="fields"></div>`;
+  const fc=$("#fields");
+  s.fields.forEach(f=>fc.appendChild(renderField(f)));
+  bindFields(fc);renderNav();renderStepper();
+}
+
+function bindFields(scope){
+  scope.querySelectorAll("[data-k]").forEach(el=>{
+    if(el.tagName==="SELECT"){
+      el.addEventListener("change",()=>{
+        el.classList.toggle("placeheld",!el.value);
+        const oi=scope.querySelector(`[data-otherfor="${el.dataset.k}"]`);
+        if(el.dataset.other==="1"&&el.value==="__other__"){ if(oi){oi.style.display="block";oi.focus();setVal(el.dataset.k,oi.value||"");} }
+        else{ if(oi)oi.style.display="none"; setVal(el.dataset.k,el.value); }
+        if(el.dataset.k==="brand") applyBrand(el.value);
+        clearErr(el);
+      });
+    } else if((el.tagName==="INPUT"||el.tagName==="TEXTAREA") && !el.classList.contains("ns-input")){
+      el.addEventListener("input",()=>{ setVal(el.dataset.k,el.value); clearErr(el); });
+    }
+  });
+  scope.querySelectorAll(".other-input").forEach(oi=>oi.addEventListener("input",()=>{ setVal(oi.dataset.otherfor,oi.value); clearErr(oi); }));
+  // brandpick (custom logo dropdown)
+  scope.querySelectorAll(".qapick").forEach(bindQaPick);
+  scope.querySelectorAll(".brandpick").forEach(bp=>{
+    const key=bp.dataset.k, trigger=bp.querySelector(".bp-trigger"), menu=bp.querySelector(".bp-menu");
+    trigger.addEventListener("click",e=>{ e.stopPropagation(); document.querySelectorAll(".brandpick.open").forEach(o=>{if(o!==bp)o.classList.remove("open");}); bp.classList.toggle("open"); });
+    bp.querySelectorAll(".bp-opt").forEach(opt=>opt.addEventListener("click",()=>{
+      const v=opt.dataset.val; setVal(key,v); applyBrand(v); bp.classList.remove("open"); clearErr(opt);
+      const bb=BRANDS[v];
+      trigger.querySelector(".bp-chip").innerHTML=bb?`<img src="${bb.logo}" alt="">`:"";
+      trigger.querySelector(".bp-chip").classList.remove("empty");
+      const nm=trigger.querySelector(".bp-name"); nm.textContent=v; nm.classList.remove("ph");
+      bp.querySelectorAll(".bp-opt").forEach(o=>{ o.classList.toggle("on",o===opt); const c=o.querySelector(".bp-check"); if(o===opt){ if(!c)o.insertAdjacentHTML("beforeend",'<span class="bp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>'); } else if(c)c.remove(); });
+    }));
+  });
+  // numstepper
+  scope.querySelectorAll(".numstep").forEach(ns=>{
+    const key=ns.dataset.k,step=+ns.dataset.step||1,inp=ns.querySelector(".ns-input");
+    inp.addEventListener("input",()=>setVal(key,inp.value===""?"":+inp.value));
+    ns.querySelectorAll(".mb").forEach(b=>b.addEventListener("click",()=>{let v=val(key);v=(v===""||v==null)?0:+v;v+=(b.dataset.act==="inc"?step:-step);v=Math.max(0,v);inp.value=v;setVal(key,v);}));
+  });
+  // segment
+  scope.querySelectorAll(".segment").forEach(seg=>{
+    const key=seg.dataset.k;
+    seg.querySelectorAll(".segbtn").forEach(b=>b.addEventListener("click",()=>{
+      seg.querySelectorAll(".segbtn").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+      setVal(key,b.dataset.val);clearErr(b);
+      // re-render to handle showIf dependents
+      const dependents=STEPS[state.step].fields.some(f=>f.showIf&&f.showIf.key===key);
+      if(dependents) renderStep();
+    }));
+  });
+  // checks
+  scope.querySelectorAll(".checks").forEach(box=>{
+    const key=box.dataset.k;
+    box.querySelectorAll(".chk").forEach(chk=>{
+      const cb=chk.querySelector("input");
+      cb.addEventListener("change",()=>{
+        chk.classList.toggle("on",cb.checked);
+        if(chk.dataset.otherchk){
+          const oi=box.parentElement.querySelector(`[data-otherfor="${key}_other"]`);
+          if(oi){oi.style.display=cb.checked?"block":"none";if(cb.checked)oi.focus();else{oi.value="";setVal(key+"_other","");}}
+        } else {
+          let arr=(val(key)||[]).slice();
+          if(cb.checked){if(!arr.includes(cb.value))arr.push(cb.value);}else arr=arr.filter(x=>x!==cb.value);
+          setVal(key,arr);
+        }
+      });
+    });
+  });
+  // spec scan (OCR auto-fill)
+  scope.querySelectorAll(".spec-input").forEach(inp=>inp.addEventListener("change",e=>{
+    const file=e.target.files[0]; if(file) runSpecScan(file);
+    e.target.value="";
+  }));
+  // gallery
+  scope.querySelectorAll(".gallery-input").forEach(inp=>inp.addEventListener("change",e=>{
+    const files=[...e.target.files];if(!files.length)return;let pending=files.length;
+    files.forEach(file=>loadScaled(file,d=>{state.gallery.push(d);if(--pending===0){save();renderStep();}}));
+  }));
+  scope.querySelectorAll("[data-gdel]").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();const i=+b.dataset.gdel;const removed=state.gallery[i];if(removed&&removed===state.specGalleryRef)state.specGalleryRef=null;state.gallery.splice(i,1);save();renderStep();}));
+  // custom fields
+  scope.querySelectorAll(".cf-add").forEach(b=>b.addEventListener("click",()=>{
+    const key=b.previousElementSibling.dataset.k; const arr=(val(key)||[]).slice(); arr.push({label:"",value:""}); setVal(key,arr); renderStep();
+  }));
+  scope.querySelectorAll(".cf-label").forEach(inp=>inp.addEventListener("input",()=>{const key=inp.closest(".cfields").dataset.k;const arr=(val(key)||[]).slice();if(arr[+inp.dataset.ci]){arr[+inp.dataset.ci].label=inp.value;setVal(key,arr);}}));
+  scope.querySelectorAll(".cf-value").forEach(inp=>inp.addEventListener("input",()=>{const key=inp.closest(".cfields").dataset.k;const arr=(val(key)||[]).slice();if(arr[+inp.dataset.ci]){arr[+inp.dataset.ci].value=inp.value;setVal(key,arr);}}));
+  scope.querySelectorAll(".cf-del").forEach(b=>b.addEventListener("click",()=>{const key=b.closest(".cfrow").parentElement.dataset.k;const arr=(val(key)||[]).slice();arr.splice(+b.dataset.ci,1);setVal(key,arr);renderStep();}));
+  // result
+  scope.querySelectorAll(".ropt").forEach(opt=>opt.addEventListener("click",()=>{const key=opt.closest(".field").dataset.key;setVal(key,opt.dataset.result);opt.parentElement.querySelectorAll(".ropt").forEach(o=>o.classList.remove("sel"));opt.classList.add("sel");clearErr(opt);}));
+  scope.querySelectorAll(".grp").forEach(g=>{g.addEventListener("focusin",()=>g.classList.add("focuswithin"));g.addEventListener("focusout",()=>g.classList.remove("focuswithin"));});
+}
+
+function clearErr(el){const f=el.closest(".field");if(f)f.classList.remove("invalid");}
+
+function bindQaPick(el){
+  const s=el.querySelector(".qa-select"); if(!s)return;
+  s.addEventListener("change",()=>{ setVal("approved_by",s.value); clearErr(s); });
+}
+
+function validateStep(){
+  const s=STEPS[state.step];let ok=true,firstBad=null;
+  s.fields.forEach(f=>{
+    if(!f.required)return;
+    if(f.showIf && val(f.showIf.key)!==f.showIf.eq) return;
+    const v=val(f.key);
+    if(v==null||v===""){ok=false;const el=body.querySelector(`.field[data-key="${f.key}"]`);if(el){el.classList.add("invalid");if(!firstBad)firstBad=el;}}
+  });
+  if(firstBad) body.scrollTo({top:Math.max(0,firstBad.offsetTop-90),behavior:"smooth"});
+  return ok;
+}
+
+function renderReview(){
+  let html=`<div class="step-head"><div class="step-kicker"><span class="seg">ตรวจทาน</span> · Review</div><h2>ตรวจทานก่อนส่ง</h2><div class="sub">ตรวจสอบความถูกต้องของข้อมูลจำเพาะสินค้า</div></div>`;
+  html+=`<div class="rev-actions"><button class="btn-pdf" id="revPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>ดูตัวอย่าง PDF ก่อนส่ง</button></div>`;
+  html+=`<div class="review-group" style="margin-bottom:16px"><div class="rg-head" style="border:none"><span class="t">${esc(val("product_th")||"")}</span></div></div>`;
+  STEPS.forEach((s,si)=>{
+    let rows="";
+    s.fields.forEach(f=>{
+      if(f.type==="product"||f.type==="info"||f.type==="multiphotos"||f.type==="result")return;
+      if(f.showIf && val(f.showIf.key)!==f.showIf.eq) return;
+      if(f.type==="customfields"){ (val(f.key)||[]).forEach(r=>{ if(r.label||r.value) rows+=reviewRow(r.label||"(ไม่มีหัวข้อ)", r.value); }); }
+      else if(f.type==="range"){ const a=val(f.key+"_min"),b=val(f.key+"_max"); rows+=reviewRow(f.th, (a!=null&&b!=null)?`${a} – ${b} ${f.unit||''}`:null); }
+      else if(f.type==="numstepper"){ const v=val(f.key); rows+=reviewRow(f.th, v!=null&&v!==""?`${v} ${f.unit||''}`:null); }
+      else if(f.type==="number"){ const v=val(f.key); rows+=reviewRow(f.th, v!=null&&v!==""?`${v} ${f.unit||''}`:null); }
+      else if(f.type==="checks"){ let arr=(val(f.key)||[]).slice();const o=val(f.key+"_other");if(o)arr.push(o); rows+=reviewRow(f.th, arr.length?arr.join(", "):null); }
+      else if(f.type==="segment"){ rows+=reviewRow(f.th, val(f.key)); }
+      else rows+=reviewRow(f.th, val(f.key));
+    });
+    html+=`<div class="review-group"><div class="rg-head"><span class="t">${esc(s.title)}</span><button class="edit" data-edit="${si}">แก้ไข</button></div>${rows}`;
+    if(s.fields.some(f=>f.type==="multiphotos")&&state.gallery.length) html+=`<div class="review-photos">${state.gallery.map(i=>`<img src="${i}">`).join("")}</div>`;
+    html+=`</div>`;
+  });
+  body.innerHTML=html;
+  const rp=document.getElementById("revPdf"); if(rp)rp.onclick=openPdf;
+  body.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>goTo(+b.dataset.edit)));
+}
+function reviewRow(k,v){return `<div class="review-row"><span class="k">${esc(k)}</span><span class="v ${v==null||v===''?'empty':''}">${(v==null||v==='')?'—':esc(v)}</span></div>`;}
+
+function renderNav(){
+  const last=state.step===REVIEW_INDEX;footnav.innerHTML="";
+  if(state.step>0){const back=document.createElement("button");back.className="btn btn-ghost";back.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';back.onclick=()=>goTo(state.step-1);footnav.appendChild(back);}
+  const next=document.createElement("button");next.className="btn btn-primary";
+  if(last){next.innerHTML='ส่งข้อมูล <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>';next.onclick=submitForm;}
+  else{next.innerHTML='ถัดไป <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';next.onclick=()=>{if(validateStep())goTo(state.step+1);};}
+  footnav.appendChild(next);
+}
+function goTo(i){state.step=Math.max(0,Math.min(REVIEW_INDEX,i));state.maxStep=Math.max(state.maxStep||0,state.step);save(false);renderStep();}
+
+function submitForm(){
+  const ref="CP-"+(val("product_code")||"1000038213")+"-"+new Date().toISOString().slice(2,10).replace(/-/g,"");
+  $("#successRef").textContent="REF · "+ref;$("#success").classList.add("show");
+}
+$("#againBtn").onclick=()=>{ state={step:0,data:{},gallery:[],maxStep:0,specPhoto:null,specNote:null,specGalleryRef:null}; STEPS.forEach(s=>s.fields.forEach(f=>{if(f.key&&f.value!==undefined)state.data[f.key]=f.value;if(f.type==="range"){state.data[f.key+"_min"]=f.min;state.data[f.key+"_max"]=f.max;}})); save(false); applyBrand(val("brand")); $("#success").classList.remove("show"); renderStep(); };
+
+/* ===== PDF preview ===== */
+function pdfVal(f){
+  if(f.showIf&&val(f.showIf.key)!==f.showIf.eq)return null;
+  if(f.type==="range"){const a=val(f.key+"_min"),b=val(f.key+"_max");return (a!=null&&a!==""&&b!=null&&b!=="")?`${a} – ${b} ${f.unit||''}`:null;}
+  if(f.type==="numstepper"||f.type==="number"){const v=val(f.key);return (v!=null&&v!=="")?`${v} ${f.unit||''}`:null;}
+  if(f.type==="checks"){let arr=(val(f.key)||[]).slice();const o=val(f.key+"_other");if(o)arr.push(o);return arr.length?arr.join(", "):null;}
+  return val(f.key);
+}
+function buildPdf(){
+  const name=val("brand")||"The Pizza Company", b=BRANDS[name]||BRANDS["The Pizza Company"];
+  const ref="CP-"+(val("product_code")||"—")+"-"+TODAY.slice(2).replace(/-/g,"");
+  let secs="";
+  STEPS.forEach(s=>{
+    let rows="";
+    s.fields.forEach(f=>{
+      if(!f.key||["product","info","specscan","multiphotos","customfields"].includes(f.type))return;
+      if(f.key==="brand")return;
+      const v=pdfVal(f);
+      if(v==null||v==="")return;
+      rows+=`<div class="pdf-tr"><span class="k">${esc(f.th)}${f.en?` (${esc(f.en)})`:''}</span><span class="v">${esc(v)}</span></div>`;
+    });
+    if(rows)secs+=`<div class="pdf-sec"><h3>${esc(s.title)}</h3>${rows}</div>`;
+  });
+  let photos="";
+  if(state.gallery&&state.gallery.length)photos=`<div class="pdf-sec"><h3>ภาพประกอบสินค้า</h3><div class="pdf-photos">${state.gallery.map(g=>`<img src="${g}">`).join("")}</div></div>`;
+  let custom="";
+  const cf=(val("custom_fields")||[]).filter(r=>(r.label||r.value));
+  if(cf.length)custom=`<div class="pdf-sec"><h3>ข้อมูลเพิ่มเติม</h3>${cf.map(r=>`<div class="pdf-tr"><span class="k">${esc(r.label||'—')}</span><span class="v">${esc(r.value||'—')}</span></div>`).join("")}</div>`;
+  let specdoc="";
+  if(state.specPhoto)specdoc=`<div class="pdf-sec pdf-specdoc"><h3>เอกสารสเปคที่แนบ (ต้นฉบับ)</h3><img src="${state.specPhoto}" alt="spec document"></div>`;
+  document.getElementById("pdfPage").innerHTML=`
+    <div class="ph">
+      <div class="plogo"><img src="${b.logo}" alt=""></div>
+      <div class="ptt"><div class="pbrand">${esc(name)}</div><div class="pdoc">ใบข้อมูลจำเพาะสินค้า · Product Ingredient Specification</div></div>
+      <div class="pmeta">FORM QA-PIS-01<br>REF ${esc(ref)}<br>${TODAY}</div>
+    </div>
+    <div class="pdf-minor">A Minor Food Brand · Quality Assurance Document</div>
+    ${photos}${secs}${custom}${specdoc}
+    <div class="pdf-sign">
+      <div class="sbox"><div class="sline"></div><div class="snm">${esc(val("prepared_by")||"____________________")}</div><div class="sps">ผู้จัดทำ · ${esc(val("position")||"Prepared by")}</div></div>
+      <div class="sbox"><div class="sline"></div><div class="snm">${esc(val("approved_by")||"____________________")}</div><div class="sps">ผู้อนุมัติ (QA) · Approved by</div></div>
+    </div>`;
+}
+function openPdf(){ buildPdf(); document.getElementById("pdfModal").classList.add("show"); }
+document.getElementById("pdfClose").onclick=()=>document.getElementById("pdfModal").classList.remove("show");
+document.getElementById("pdfPrint").onclick=()=>window.print();
+
+applyBrand(val("brand")||"The Pizza Company");
+renderStep();
+document.addEventListener("click",()=>document.querySelectorAll(".brandpick.open").forEach(o=>o.classList.remove("open")));
+</script>
+</body>
+</html>

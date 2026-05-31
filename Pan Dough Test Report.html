@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+
+<html lang="th"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>แบบฟอร์มรายงานการตรวจสอบคุณภาพแป้งโดว์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4EFE7;--surface:#FFFFFF;--surface-2:#FBF7F0;
+    --ink:#2A2520;--ink-soft:#5C544A;--muted:#9A9082;
+    --line:#E7DECF;--line-strong:#D8CCB7;
+    --wheat:#C68A2E;--wheat-deep:#A66E1C;--wheat-tint:#F6E9CE;--crust:#7A4E1D;
+    --pass:#2E7D52;--pass-tint:#E1F0E7;--fail:#C2410C;--fail-tint:#FBE7DC;--hold:#B8881A;--hold-tint:#F6ECCB;
+    --shadow-lift:0 10px 40px rgba(122,78,29,.16);
+    --radius:16px;--radius-sm:11px;
+    --font:"IBM Plex Sans Thai",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(120% 60% at 50% -10%, rgba(198,138,46,.10), transparent 60%),radial-gradient(80% 50% at 100% 110%, rgba(122,78,29,.07), transparent 60%);}
+
+  .app{position:relative;z-index:1;width:100%;max-width:460px;min-height:100%;background:var(--surface);display:flex;flex-direction:column;box-shadow:var(--shadow-lift);}
+  @media(min-width:540px){body{align-items:center;padding:28px 16px;}.app{min-height:auto;height:min(880px,calc(100vh - 56px));border-radius:30px;overflow:hidden;}}
+
+  header.top{flex:none;padding:16px 20px 14px;background:linear-gradient(180deg,#FFFDF9,#FFFFFF);border-bottom:1px solid var(--line);}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .mark{width:38px;height:38px;border-radius:11px;flex:none;background:linear-gradient(145deg,var(--wheat),var(--wheat-deep));display:grid;place-items:center;color:#fff;box-shadow:0 4px 12px rgba(166,110,28,.35);}
+  .mark svg{width:21px;height:21px;}
+  .brand-txt{flex:1;min-width:0;}
+  .brand-txt h1{font-size:14px;font-weight:700;letter-spacing:-.01em;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .brand-txt p{font-size:10.5px;color:var(--muted);font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-top:2px;}
+  .doc-ref{flex:none;text-align:right;}
+  .doc-ref .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+  .doc-ref .val{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-soft);}
+  .lang-toggle{flex:none;display:flex;align-items:center;gap:0;padding:2px;background:var(--surface-2);border:1.5px solid var(--line-strong);border-radius:9px;cursor:pointer;font-family:var(--mono);}
+  .lang-toggle .lt-seg{font-size:11px;font-weight:700;color:var(--muted);padding:4px 8px;border-radius:7px;transition:.18s;letter-spacing:.02em;}
+  .lang-toggle .lt-seg.on{background:var(--wheat);color:#fff;box-shadow:0 2px 6px rgba(166,110,28,.3);}
+
+  .stepper{display:flex;align-items:center;gap:0;margin-top:15px;}
+  .stepper .node{display:flex;flex-direction:column;align-items:center;flex:none;width:32px;cursor:pointer;}
+  .stepper .dot{width:29px;height:29px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;font-family:var(--mono);background:var(--surface-2);border:1.5px solid var(--line-strong);color:var(--muted);transition:.35s cubic-bezier(.4,0,.2,1);}
+  .stepper .node[data-state="done"] .dot{background:var(--wheat);border-color:var(--wheat);color:#fff;}
+  .stepper .node[data-state="active"] .dot{background:#fff;border-color:var(--wheat);color:var(--wheat-deep);box-shadow:0 0 0 4px var(--wheat-tint);}
+  .stepper .bar{flex:1;height:2px;background:var(--line-strong);position:relative;border-radius:2px;margin-top:-1px;}
+  .stepper .bar i{position:absolute;inset:0;width:0;background:var(--wheat);border-radius:2px;transition:width .4s ease;}
+
+  .body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+  .body::-webkit-scrollbar{width:0;}
+  .step-head{padding:20px 22px 4px;}
+  .step-kicker{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;color:var(--wheat-deep);text-transform:uppercase;letter-spacing:.07em;}
+  .step-kicker .seg{font-family:var(--mono);}
+  .step-head h2{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:7px;}
+  .step-head .sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+  .fields{padding:14px 22px 24px;display:flex;flex-direction:column;gap:16px;}
+
+  .field{opacity:1;}
+  .field > label.flabel{display:flex;align-items:baseline;gap:7px;margin-bottom:7px;flex-wrap:wrap;}
+  .flabel .th{font-size:13.5px;font-weight:600;color:var(--ink);}
+  .flabel .en{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-family:var(--mono);}
+  .flabel .req{color:var(--fail);font-weight:700;}
+
+  .ctrl{width:100%;font-family:var(--font);font-size:15px;font-weight:500;color:var(--ink);background:var(--surface-2);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:13px 14px;transition:.18s;appearance:none;outline:none;}
+  .ctrl::placeholder{color:#BCB2A2;font-weight:400;}
+  .ctrl:focus{border-color:var(--wheat);background:#fff;box-shadow:0 0 0 4px var(--wheat-tint);}
+  textarea.ctrl{resize:none;min-height:84px;line-height:1.5;}
+
+  .selwrap{position:relative;}
+  .selwrap::after{content:"";position:absolute;right:15px;top:50%;width:9px;height:9px;border-right:2px solid var(--wheat-deep);border-bottom:2px solid var(--wheat-deep);transform:translateY(-65%) rotate(45deg);pointer-events:none;}
+  select.ctrl{padding-right:38px;cursor:pointer;}
+  select.ctrl.placeheld{color:#BCB2A2;font-weight:400;}
+
+  .unitwrap{position:relative;display:flex;align-items:center;}
+  .unitwrap .unit{position:absolute;right:14px;font-size:12px;font-weight:600;color:var(--muted);font-family:var(--mono);pointer-events:none;}
+  .unitwrap .ctrl{padding-right:46px;font-family:var(--mono);}
+
+  .grp{background:var(--surface-2);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:13px 14px;}
+  .grp.focuswithin{border-color:var(--line-strong);}
+  .grp .grp-cols{display:flex;gap:12px;}
+  .grp .grp-cols.c3{gap:8px;}
+  .grp .col{flex:1;min-width:0;}
+  .sublbl{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;display:block;}
+  .mini{width:100%;font-family:var(--mono);font-size:15px;font-weight:600;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;outline:none;transition:.18s;appearance:none;}
+  .mini:focus{border-color:var(--wheat);box-shadow:0 0 0 3px var(--wheat-tint);}
+  .grp .selwrap::after{right:11px;width:7px;height:7px;}
+  select.mini{padding-right:28px;cursor:pointer;}
+
+  /* lot code field */
+  .lotgrp .lot-code-row{display:flex;gap:8px;}
+  .lot-code{flex:1;text-transform:none;}
+  .scan-btn{flex:none;display:flex;align-items:center;gap:6px;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--wheat-deep);background:var(--wheat-tint);border:1.5px solid #EAD6A8;border-radius:9px;padding:0 13px;cursor:pointer;transition:.15s;}
+  .scan-btn:active{transform:scale(.95);}
+  .scan-btn svg{width:16px;height:16px;}
+  .lot-thumb-wrap{display:flex;gap:8px;margin-top:10px;}
+  .lot-thumb{position:relative;width:60px;height:60px;border-radius:9px;overflow:hidden;border:1.5px solid var(--wheat);}
+  .lot-thumb img{width:100%;height:100%;object-fit:cover;}
+  .lot-thumb .x{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:rgba(42,37,32,.72);color:#fff;border:none;font-size:11px;cursor:pointer;display:grid;place-items:center;}
+
+  /* mini fraction stepper */
+  .mfrac{display:flex;align-items:center;gap:6px;}
+  .mfrac .mb{width:36px;height:42px;flex:none;border-radius:9px;border:1.5px solid var(--line);background:#fff;font-size:20px;font-weight:500;color:var(--wheat-deep);cursor:pointer;display:grid;place-items:center;transition:.15s;user-select:none;}
+  .mfrac .mb:active{transform:scale(.9);background:var(--wheat-tint);}
+  .mfrac .mv{flex:1;text-align:center;font-family:var(--mono);font-size:17px;font-weight:600;background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:11px 4px;white-space:nowrap;}
+  .mfrac .mv .of{color:var(--muted);font-size:13px;}
+
+  /* number stepper */
+  .numstep{display:flex;align-items:center;gap:10px;}
+  .numstep .mb{width:46px;height:48px;flex:none;border-radius:11px;border:1.5px solid var(--line);background:var(--surface-2);font-size:24px;font-weight:500;color:var(--wheat-deep);cursor:pointer;display:grid;place-items:center;transition:.15s;user-select:none;}
+  .numstep .mb:active{transform:scale(.92);background:var(--wheat-tint);}
+  .ns-wrap{flex:1;position:relative;display:flex;align-items:center;}
+  .ns-input{width:100%;text-align:center;font-family:var(--mono);font-size:19px;font-weight:600;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:12px 34px 12px 12px;outline:none;appearance:none;}
+  .ns-input:focus{border-color:var(--wheat);box-shadow:0 0 0 3px var(--wheat-tint);}
+  .ns-unit{position:absolute;right:14px;font-size:12px;font-weight:600;color:var(--muted);font-family:var(--mono);pointer-events:none;}
+
+  /* checklist */
+  .checks{display:flex;flex-direction:column;gap:8px;}
+  .chk{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--line);background:var(--surface-2);cursor:pointer;transition:.15s;}
+  .chk input{position:absolute;opacity:0;pointer-events:none;}
+  .chk .cbox{width:21px;height:21px;border-radius:6px;border:2px solid var(--line-strong);flex:none;display:grid;place-items:center;transition:.15s;}
+  .chk .cbox::after{content:"";width:11px;height:6px;border-left:2.4px solid #fff;border-bottom:2.4px solid #fff;transform:rotate(-45deg) scale(0);transition:.15s;margin-top:-2px;}
+  .chk .ctext{font-size:14px;font-weight:600;}
+  .chk.on{border-color:var(--wheat);background:var(--wheat-tint);}
+  .chk.on .cbox{background:var(--wheat);border-color:var(--wheat);}
+  .chk.on .cbox::after{transform:rotate(-45deg) scale(1);}
+
+  /* photo gallery */
+  .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .gphoto{position:relative;aspect-ratio:1;border-radius:13px;overflow:hidden;border:1.5px solid var(--wheat);}
+  .gphoto img{width:100%;height:100%;object-fit:cover;}
+  .gphoto .gdel{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(42,37,32,.7);color:#fff;border:none;display:grid;place-items:center;cursor:pointer;font-size:13px;}
+  .gadd{position:relative;aspect-ratio:1;border-radius:13px;border:1.5px dashed var(--line-strong);background:var(--surface-2);display:grid;place-items:center;cursor:pointer;transition:.18s;}
+  .gadd:hover{border-color:var(--wheat);background:var(--wheat-tint);}
+  .gadd input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .gadd .ph{display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--muted);}
+  .gadd .ph svg{width:22px;height:22px;}
+  .gadd .ph span{font-size:10px;font-weight:600;}
+
+  /* result chips */
+  .result-opts{display:flex;flex-direction:column;gap:10px;}
+  .ropt{display:flex;align-items:center;gap:13px;padding:15px 16px;border-radius:var(--radius-sm);border:1.5px solid var(--line);background:var(--surface-2);cursor:pointer;transition:.18s;}
+  .ropt .rdot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line-strong);flex:none;display:grid;place-items:center;transition:.18s;}
+  .ropt .rdot::after{content:"";width:10px;height:10px;border-radius:50%;background:transparent;transition:.18s;}
+  .ropt .rtxt{font-weight:600;font-size:14px;}
+  .ropt .rsub{font-size:11px;color:var(--muted);font-weight:500;}
+  .ropt.sel.pass{border-color:var(--pass);background:var(--pass-tint);}
+  .ropt.sel.pass .rdot{border-color:var(--pass);}.ropt.sel.pass .rdot::after{background:var(--pass);}
+  .ropt.sel.fail{border-color:var(--fail);background:var(--fail-tint);}
+  .ropt.sel.fail .rdot{border-color:var(--fail);}.ropt.sel.fail .rdot::after{background:var(--fail);}
+  .ropt.sel.hold{border-color:var(--hold);background:var(--hold-tint);}
+  .ropt.sel.hold .rdot{border-color:var(--hold);}.ropt.sel.hold .rdot::after{background:var(--hold);}
+
+  .hint{font-size:11.5px;color:var(--muted);margin-top:-3px;}
+  .err-msg{font-size:11.5px;color:var(--fail);font-weight:600;margin-top:6px;display:none;}
+  .field.invalid .ctrl,.field.invalid .grp,.field.invalid .lotgrp,.field.invalid .result-opts{border-color:var(--fail);}
+  .field.invalid .err-msg{display:block;}
+
+  /* autosave bar */
+  .savebar{flex:none;display:flex;align-items:center;justify-content:center;gap:7px;font-size:11px;font-weight:600;color:var(--muted);padding:7px;background:var(--surface-2);border-top:1px solid var(--line);}
+  .savebar .sd{width:7px;height:7px;border-radius:50%;background:var(--pass);box-shadow:0 0 0 0 rgba(46,125,82,.5);}
+  .savebar.flash .sd{animation:pulse .9s;}
+  .savebar.flash{color:var(--pass);}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,125,82,.5);}100%{box-shadow:0 0 0 7px rgba(46,125,82,0);}}
+
+  footer.nav{flex:none;display:flex;gap:10px;padding:14px 18px;padding-bottom:calc(14px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);}
+  .btn{flex:1;font-family:var(--font);font-size:15px;font-weight:600;border-radius:13px;padding:15px;cursor:pointer;border:1.5px solid transparent;transition:.18s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--wheat);color:#fff;box-shadow:0 6px 16px rgba(166,110,28,.32);}
+  .btn-primary:hover{background:var(--wheat-deep);}
+  .btn-ghost{background:#fff;color:var(--ink-soft);border-color:var(--line-strong);flex:0 0 auto;width:54px;}
+  .btn svg{width:18px;height:18px;}
+
+  /* review */
+  .review-group{margin:0 22px 16px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .review-group .rg-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:#fff;border-bottom:1px solid var(--line);}
+  .review-group .rg-head .t{font-size:13px;font-weight:700;}
+  .review-group .rg-head .edit{font-size:12px;font-weight:600;color:var(--wheat-deep);cursor:pointer;background:none;border:none;font-family:var(--font);}
+  .review-row{display:flex;justify-content:space-between;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);}
+  .review-row:last-child{border-bottom:none;}
+  .review-row .k{font-size:12px;color:var(--muted);font-weight:500;flex:1;}
+  .review-row .v{font-size:13px;font-weight:600;text-align:right;font-family:var(--mono);max-width:60%;word-break:break-word;}
+  .review-row .v.empty{color:#C9BFAF;font-style:italic;font-family:var(--font);font-weight:400;}
+  .review-photos{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap;}
+  .review-photos img{width:60px;height:60px;border-radius:9px;object-fit:cover;border:1px solid var(--line);}
+  .verdict{margin:0 22px 16px;border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:12px;font-weight:700;}
+  .verdict.pass{background:var(--pass-tint);color:var(--pass);}.verdict.fail{background:var(--fail-tint);color:var(--fail);}.verdict.hold{background:var(--hold-tint);color:var(--hold);}
+  .verdict .vchip{width:40px;height:40px;border-radius:11px;background:currentColor;display:grid;place-items:center;flex:none;}
+  .verdict .vchip svg{width:22px;height:22px;color:#fff;}
+  .verdict .vt span{display:block;font-size:11px;font-weight:600;opacity:.7;text-transform:uppercase;letter-spacing:.06em;}
+  .verdict .vt strong{font-size:16px;}
+
+  .success{position:absolute;inset:0;z-index:30;background:var(--surface);display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 30px;text-align:center;}
+  .success.show{display:flex;animation:fade .4s;}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+  .success .seal{width:96px;height:96px;border-radius:50%;background:var(--pass-tint);display:grid;place-items:center;margin-bottom:22px;animation:pop .5s cubic-bezier(.2,1.4,.4,1) .1s backwards;}
+  @keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
+  .success .seal svg{width:48px;height:48px;color:var(--pass);}
+  .success h2{font-size:23px;font-weight:700;letter-spacing:-.02em;}
+  .success p{font-size:13.5px;color:var(--ink-soft);margin-top:10px;max-width:280px;}
+  .success .ref{margin-top:18px;font-family:var(--mono);font-size:13px;font-weight:600;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 16px;color:var(--ink-soft);}
+  .success .again{margin-top:26px;background:none;border:none;color:var(--wheat-deep);font-weight:600;font-size:14px;font-family:var(--font);cursor:pointer;}
+  .success-count{margin-top:12px;font-size:12.5px;font-weight:600;color:var(--ink-soft);}
+  .success-actions{display:flex;flex-direction:column;gap:10px;margin-top:22px;width:100%;max-width:300px;}
+  .success-actions .btn{flex:none;width:100%;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div style="display:flex;align-items:center;justify-content:center;padding:6px 20px 2px;border-bottom:1px solid var(--line);margin-bottom:2px;"><img src="data:image/jpeg;base64,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" alt="Minor International" style="height:24px;width:auto;object-fit:contain;display:block;"></div>
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20"></path><path d="M12 5c2.5-1.6 4.5 0 4.5 0S15 8 12 8 7.5 5 7.5 5 9.5 3.4 12 5Z"></path>
+          <path d="M12 10c2.5-1.6 4.5 0 4.5 0S15 13 12 13 7.5 10 7.5 10 9.5 8.4 12 10Z"></path>
+          <path d="M12 15c2.5-1.6 4.5 0 4.5 0S15 18 12 18 7.5 15 7.5 15 9.5 13.4 12 15Z"></path>
+        </svg>
+      </div>
+      <div class="brand-txt">
+        <h1 id="brandTitle">รายงานคุณภาพแป้งโดว์</h1>
+        <p id="brandSub">Pan&nbsp;Dough&nbsp;Test&nbsp;Report</p>
+      </div>
+      <button type="button" class="lang-toggle" id="langToggle" aria-label="Switch language">
+        <span class="lt-seg" data-lang="th">TH</span><span class="lt-seg" data-lang="en">EN</span>
+      </button>
+      <div class="doc-ref"><div class="lbl" id="formLbl">Form</div><div class="val">QC-PD-01</div></div>
+    </div>
+    <nav class="stepper" id="stepper" aria-label="ความคืบหน้า"><div class="node" data-state="active"><div class="dot">1</div></div><div class="bar"><i style="width: 0%;"></i></div><div class="node" data-state="todo"><div class="dot">2</div></div><div class="bar"><i style="width: 0%;"></i></div><div class="node" data-state="todo"><div class="dot">3</div></div><div class="bar"><i style="width: 0%;"></i></div><div class="node" data-state="todo"><div class="dot">4</div></div><div class="bar"><i style="width: 0%;"></i></div><div class="node" data-state="todo"><div class="dot">5</div></div></nav>
+  </header>
+
+  <main class="body" id="body"><div class="step-head">
+      <div class="step-kicker"><span class="seg">ขั้นที่ 1/5</span> · ข้อมูล</div>
+      <h2>ข้อมูลการทดสอบ</h2><div class="sub">General test information</div>
+    </div><div class="fields" id="fields"><div class="field" data-key="test_date"><label class="flabel"><span class="th">วันที่ทดสอบ<span class="req"> *</span></span><span class="en">TEST DATE</span></label><input class="ctrl" type="date" data-k="test_date" placeholder="" value="2026-05-30"><div class="err-msg">กรุณากรอกข้อมูลนี้</div></div><div class="field invalid" data-key="supplier"><label class="flabel"><span class="th">ผู้ผลิต / Supplier<span class="req"> *</span></span><span class="en">SUPPLIER</span></label><div class="selwrap"><select class="ctrl placeheld" data-k="supplier" data-other="1"><option value="" selected="" disabled="" hidden="">เลือก…</option><option value="UFM">UFM</option><option value="IFV">IFV</option><option value="NSSTC">NSSTC</option><option value="__other__">อื่นๆ (พิมพ์เอง)…</option></select></div>
+    <input class="ctrl other-input" data-otherfor="supplier" placeholder="ระบุ…" value="" style="margin-top:9px;display:none"><div class="err-msg">กรุณากรอกข้อมูลนี้</div></div><div class="field invalid" data-key="sample_number"><label class="flabel"><span class="th">หมายเลขตัวอย่าง<span class="req"> *</span></span><span class="en">SAMPLE NUMBER</span></label><div class="selwrap"><select class="ctrl placeheld" data-k="sample_number" data-other="1"><option value="" selected="" disabled="" hidden="">เลือก…</option><option value="001">001</option><option value="002">002</option><option value="003">003</option><option value="004">004</option><option value="005">005</option><option value="006">006</option><option value="007">007</option><option value="008">008</option><option value="009">009</option><option value="010">010</option><option value="011">011</option><option value="012">012</option><option value="__other__">อื่นๆ (พิมพ์เอง)…</option></select></div>
+    <input class="ctrl other-input" data-otherfor="sample_number" placeholder="ระบุ…" value="" style="margin-top:9px;display:none"><div class="err-msg">กรุณากรอกข้อมูลนี้</div></div><div class="field invalid" data-key="batch_size"><label class="flabel"><span class="th">ขนาดแบตช์<span class="req"> *</span></span><span class="en">BATCH SIZE</span></label><div class="selwrap"><select class="ctrl placeheld" data-k="batch_size" data-other="0"><option value="" selected="" disabled="" hidden="">เลือก…</option><option value="0.25 Batch">0.25 Batch</option><option value="0.5 Batch">0.5 Batch</option><option value="1 Batch">1 Batch</option></select></div>
+    <input class="ctrl other-input" data-otherfor="batch_size" placeholder="ระบุ…" value="" style="margin-top:9px;display:none"><div class="err-msg">กรุณากรอกข้อมูลนี้</div></div></div></main>
+
+  <div class="savebar" id="savebar"><span class="sd"></span><span id="saveTxt">บันทึกอัตโนมัติ</span></div>
+  <footer class="nav" id="footnav"><button class="btn btn-primary">ถัดไป <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button></footer>
+
+  <div class="success" id="success">
+    <div class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>
+    <h2>ส่งรายงานเรียบร้อย</h2>
+    <p>บันทึกผลการตรวจสอบคุณภาพแป้งโดว์เข้าสู่ระบบแล้ว ทีม QC จะตรวจทานและยืนยันผลต่อไป</p>
+    <div class="ref" id="successRef">REF —</div>
+    <div class="success-count" id="successCount"></div>
+    <div class="success-actions">
+      <button class="btn btn-primary" id="btnPDF">พิมพ์สรุปรายวัน (PDF)</button>
+      <button class="btn btn-primary" id="btnSup">สรุปแยก Supplier · ไทย/EN (PDF)</button>
+      <button class="btn btn-primary" id="btnXLS">Export Excel</button>
+    </div>
+    <button class="again" id="againBtn">+ กรอกรายงานใหม่</button>
+  </div>
+</div>
+
+<script>
+const TODAY = new Date().toISOString().slice(0,10);
+const sampleOpts = Array.from({length:12},(_,i)=>String(i+1).padStart(3,"0"));
+
+const STEPS = [
+  { id:"info", tick:"ข้อมูล", title:"ข้อมูลการทดสอบ", sub:"General test information",
+    fields:[
+      {key:"test_date", th:"วันที่ทดสอบ", en:"TEST DATE", type:"date", required:true, value:TODAY},
+      {key:"supplier", th:"ผู้ผลิต / Supplier", en:"SUPPLIER", type:"select", required:true, allowOther:true, options:["UFM","IFV","NSSTC","R&B Food","Indonesia","UAE"]},
+      {key:"sample_number", th:"หมายเลขตัวอย่าง", en:"SAMPLE NUMBER", type:"select", required:true, allowOther:true, options:sampleOpts},
+      {key:"batch_size", th:"ขนาดแบตช์", en:"BATCH SIZE", type:"select", required:true, options:["0.25 Batch","0.5 Batch","1 Batch"]},
+    ]},
+  { id:"ingredients", tick:"ส่วนผสม", title:"แป้งและส่วนผสม", sub:"Flour, water & ingredient lots",
+    fields:[
+      {key:"hd_test_flour", type:"heading", th:"ทดสอบแป้ง (Test Flour)", en:"Test Flour"},
+      {key:"lot_flour", th:"ล็อตแป้ง", en:"LOT OF FLOUR", type:"lotcode", required:true, dates:true, options:["005","007","SAMPLE 009","P4-A","P4-B","P4-C"]},
+      {key:"flour", th:"แป้ง — อุณหภูมิ / น้ำหนัก", en:"FLOUR TEMP / WEIGHT", type:"cols", cols:[
+        {key:"flour_temp", sub:"อุณหภูมิ", type:"number", unit:"°C", placeholder:"29.2"},
+        {key:"flour_weight", sub:"น้ำหนัก", type:"number", unit:"g", placeholder:"5002"}]},
+      {key:"water", th:"น้ำ — อุณหภูมิ / น้ำหนัก", en:"WATER TEMP / WEIGHT", type:"cols", cols:[
+        {key:"water_temp", sub:"อุณหภูมิ", type:"number", unit:"°C", placeholder:"30.0"},
+        {key:"water_weight", sub:"น้ำหนัก", type:"number", unit:"g", placeholder:"2662"}]},
+      {key:"hd_test_blend", type:"heading", th:"ทดสอบ Blend (Test Blend)", en:"Test Blend"},
+      {key:"lot_blend", th:"ล็อต LS-Specialty Blend", en:"LOT OF LS-SPECIALTY BLEND", type:"lotcode", dates:true, options:["LS-A","LS-B"]},
+      {key:"batch_number", th:"เลขแบตช์ Blend", en:"BATCH NUMBER", type:"lotcode", dates:true, options:["230417035","230218035"]},
+      {key:"hd_test_yeast", type:"heading", th:"ทดสอบยีสต์ (Test Yeast)", en:"Test Yeast"},
+      {key:"lot_yeast", th:"ล็อตยีสต์", en:"LOT OF YEAST", type:"lotcode", dates:true, options:["22011202","AK 22011202"]},
+      {key:"blend_weight", th:"น้ำหนัก LS-Specialty Blend", en:"LS-SPECIALTY BLEND WEIGHT", type:"number", unit:"g", placeholder:"233.0"},
+    ]},
+  { id:"proof", tick:"พิสูจน์", title:"การผสมและพิสูจน์", sub:"Mixing & proofing parameters",
+    fields:[
+      {key:"brixsalt", th:"Brix / Salt หลังผสม", en:"BRIX % / SALT % AFTER MIX", type:"cols", cols:[
+        {key:"brix", sub:"Brix", type:"number", unit:"%", placeholder:"6.1"},
+        {key:"salt", sub:"Salt", type:"number", unit:"%", placeholder:"1.56"}]},
+      {key:"dough_temp", th:"อุณหภูมิแป้งโดว์", en:"DOUGH TEMP", type:"number", unit:"°C", placeholder:"32.0"},
+      {key:"proofer", th:"ตู้พิสูจน์ — อุณหภูมิ / ตู้", en:"PROOFER TEMP / CABINET", type:"cols", cols:[
+        {key:"proofer_temp", sub:"อุณหภูมิ", type:"number", unit:"°C", placeholder:"33.0"},
+        {key:"proofer_cabinet", sub:"ตู้", type:"select", options:["ตู้ 1","ตู้ 2","ตู้ 3"]}]},
+      {key:"due", th:"ค่าตั้งตู้ (D / U / E)", en:"PROOFER SETTING · TIME", type:"cols3",
+        hint:"E = D + 9 ชม. · U = เวลาออกตู้ + 1 ชม. (คำนวณและล็อกอัตโนมัติ)", cols:[
+        {key:"set_d", sub:"D", type:"time"},
+        {key:"set_u", sub:"U", type:"time", readonly:true},
+        {key:"set_e", sub:"E", type:"time", readonly:true}]},
+      {key:"proof_times", th:"เวลาเข้า / ออกตู้", en:"TIME IN / OUT PROOFER", type:"cols",
+        hint:"กรอกเวลาเข้า–ออกตู้ได้เอง (ระบบคำนวณระยะเวลาพิสูจน์ให้อัตโนมัติ)", cols:[
+        {key:"time_in", sub:"เข้าตู้", type:"time"},
+        {key:"time_out", sub:"ออกตู้", type:"time"}]},
+      {key:"proofing_time", th:"ระยะเวลาพิสูจน์", en:"PROOFING TIME", type:"numstepper", unit:"min", step:5, placeholder:"75", autoMin:true},
+    ]},
+  { id:"quality", tick:"คุณภาพ", title:"คุณภาพแป้งโดว์", sub:"Dough quality assessment",
+    fields:[
+      {key:"q_mix", th:"คุณภาพหลังผสม", en:"DOUGH QUALITY AFTER MIX", type:"select", allowOther:true,
+        options:["นิ่ม, แน่น, แห้งเล็กน้อย","แน่น, แห้ง, นิ่มเล็กน้อย","แห้ง, แน่น, นิ่มเล็กน้อย","นิ่ม, เหนียว","แน่น, แห้ง"]},
+      {key:"q_proof", th:"คุณภาพหลังพิสูจน์", en:"DOUGH QUALITY AFTER PROOF", type:"select", allowOther:true,
+        options:["ผดเล็ก 100%","ผดเล็ก 90%","ผดเล็ก 80%","ผดกลาง","ไม่ขึ้นฟู"]},
+      {key:"chill", th:"คุณภาพหลังแช่เย็น — ต้น / ปลายชั่วโมง", en:"AFTER CHILL EARLY / LATE", type:"cols", cols:[
+        {key:"chill_early", sub:"ต้นชั่วโมง", type:"number", unit:"hr", placeholder:"4.5"},
+        {key:"chill_late", sub:"ปลายชั่วโมง", type:"number", unit:"hr", placeholder:"8.0"}]},
+      {key:"good_m", th:"Good Dough — M (ต้น / ปลายชั่วโมง)", en:"GOOD DOUGH M", type:"fracEL", total:18},
+      {key:"good_l", th:"Good Dough — L (ต้น / ปลายชั่วโมง)", en:"GOOD DOUGH L", type:"fracEL", total:4},
+      {key:"defect_types", th:"ประเภทข้อบกพร่อง", en:"DEFECT TYPE", type:"checks", allowOther:true,
+        options:["ยุบ","ฟองปูด","อากาศใต้แป้ง"]},
+      {key:"defect_count", th:"จำนวนยุบ (M / L)", en:"DEFECT COUNT", type:"cols", cols:[
+        {key:"defect_m", sub:"M ยุบ", type:"number", placeholder:"0"},
+        {key:"defect_l", sub:"L ยุบ", type:"number", placeholder:"0"}]},
+      {key:"quality_photos", th:"ภาพถ่ายคุณภาพโดว์ (เพิ่มได้หลายภาพ)", en:"DOUGH QUALITY PICTURES", type:"multiphotos"},
+    ]},
+  { id:"result", tick:"ผล", title:"หลังอบและผลตรวจ", sub:"Bake, sensory & final result",
+    fields:[
+      {key:"q_bake", th:"คุณภาพหลังอบ", en:"DOUGH QUALITY AFTER BAKE", type:"select", allowOther:true,
+        options:["ได้ตาม STD","มีลักษณะ Panflow","โครงสร้างฟองอากาศเล็กสม่ำเสมอ","ฟองอากาศเล็กและกลางกระจายทั่ว"]},
+      {key:"sensory", th:"การทดสอบรสสัมผัสพิซซ่า", en:"SENSORY TEST OF PIZZA", type:"select", allowOther:true,
+        options:["กรอบ","กรอบ ยืดเล็กน้อย","กรอบ แข็ง ยืดเล็กน้อย","กรอบ เบา ยืดเล็กน้อย"]},
+      {key:"gallery", th:"ภาพถ่าย (เพิ่มได้หลายภาพ)", en:"PICTURES", type:"multiphotos"},
+      {key:"result", th:"ผลการตรวจสอบ", en:"RESULT", type:"result", required:true,
+        options:[
+          {value:"PASS", th:"ผ่าน", sub:"ได้ตามมาตรฐาน", tone:"pass"},
+          {value:"Not Pass", th:"ไม่ผ่าน", sub:"ไม่ได้ตามมาตรฐาน", tone:"fail"},
+          {value:"Re-Confirm หาสาเหตุ", th:"ทบทวนซ้ำ", sub:"ต้องหาสาเหตุเพิ่มเติม", tone:"hold"}]},
+      {key:"remark", th:"หมายเหตุ", en:"REMARK", type:"textarea", placeholder:"บันทึกข้อสังเกตเพิ่มเติม (ถ้ามี)"},
+      {key:"approved_by", th:"ชื่อผู้อนุมัติ", en:"APPROVED BY", type:"text", required:true, placeholder:"ชื่อ–นามสกุล"},
+      {key:"approved_position", th:"ตำแหน่งผู้อนุมัติ", en:"POSITION", type:"select", required:true, allowOther:true,
+        options:["QC Supervisor","QC Manager","QA Manager","Production Manager","R&D Specialist"]},
+    ]},
+];
+
+const LS_KEY = "pandough_form_v2";
+let state = { step:0, data:{}, photos:{}, gallery:[], galleries:{}, lang:"th" };
+try{ const s = JSON.parse(localStorage.getItem(LS_KEY)); if(s){ state = Object.assign({step:0,data:{},photos:{},gallery:[],galleries:{},lang:"th"},s);} }catch(e){}
+if(!state.galleries) state.galleries={};
+if(state.lang!=="en") state.lang="th";
+state.data.test_date = TODAY;
+
+/* ---- i18n: TH is default (UI unchanged); EN flips text only ---- */
+function isEN(){ return state.lang==="en"; }
+function L(th,en){ return isEN()?(en==null?th:en):th; }
+const UI_TXT={
+  appTitle:["รายงานคุณภาพแป้งโดว์","Pan Dough Test Report"],
+  appSub:["Pan&nbsp;Dough&nbsp;Test&nbsp;Report","แบบฟอร์มตรวจสอบคุณภาพ"],
+  formLbl:["Form","Form"],
+  autosaveIdle:["บันทึกอัตโนมัติ","Auto-saved"],
+  autosaveDone:["บันทึกแล้ว","Saved"],
+  next:["ถัดไป","Next"],
+  submit:["ส่งรายงาน","Submit"],
+  reviewSeg:["ตรวจทาน","Review"],
+  reviewSub:["Review","ตรวจทาน"],
+  reviewTitle:["ตรวจทานก่อนส่ง","Review before submit"],
+  reviewDesc:["โปรดตรวจสอบความถูกต้องของข้อมูลทั้งหมด","Please verify all information"],
+  resultLine:["ผลการตรวจสอบ","Result"],
+  edit:["แก้ไข","Edit"],
+  stepWord:["ขั้นที่","Step"],
+  requiredErr:["กรุณากรอกข้อมูลนี้","This field is required"],
+  expErr:["EXP ต้องไม่น้อยกว่า MFG","EXP must not be earlier than MFG"],
+  choose:["เลือก…","Select…"],
+  specify:["ระบุ…","Specify…"],
+  other:["อื่นๆ","Other"],
+  otherType:["อื่นๆ (พิมพ์เอง)…","Other (type)…"],
+  otherDefect:["ระบุข้อบกพร่องอื่น…","Specify other defect…"],
+  lotCode:["รหัสล็อต / Lot code","Lot code"],
+  typeOrScan:["พิมพ์หรือสแกน","Type or scan"],
+  scan:["สแกน","Scan"],
+  addPhoto:["เพิ่มภาพ","Add photo"],
+  early:["ต้นชั่วโมง","Early hour"],
+  late:["ปลายชั่วโมง","Late hour"]
+};
+function T(key){ const e=UI_TXT[key]; if(!e) return key; return isEN()?e[1]:e[0]; }
+/* English captions for step ticks + col sub-labels (TH stays primary) */
+const TICK_EN={ "ข้อมูล":"Info","ส่วนผสม":"Ingredients","พิสูจน์":"Proofing","คุณภาพ":"Quality","ผล":"Result" };
+const SUB_EN={ "อุณหภูมิ":"Temp","น้ำหนัก":"Weight","ตู้":"Cabinet","Brix":"Brix","Salt":"Salt",
+  "เข้าตู้":"Time in","ออกตู้":"Time out","D":"D","U":"U","E":"E",
+  "ต้นชั่วโมง":"Early","ปลายชั่วโมง":"Late","M ยุบ":"M collapse","L ยุบ":"L collapse" };
+function tickL(t){ return isEN()?(TICK_EN[t]||t):t; }
+function subL(s){ return isEN()?(SUB_EN[s]||s):s; }
+
+const REVIEW_INDEX = STEPS.length;
+
+let saveTimer=null;
+function save(flash){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  catch(e){
+    try{ const lite=Object.assign({},state,{photos:{},gallery:[],galleries:{}}); localStorage.setItem(LS_KEY, JSON.stringify(lite)); }catch(_){}
+  }
+  if(flash!==false) pingSave();
+}
+function pingSave(){
+  const bar=document.getElementById("savebar"), txt=document.getElementById("saveTxt");
+  if(!bar) return;
+  bar.classList.add("flash"); txt.textContent=T("autosaveDone");
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{ bar.classList.remove("flash"); txt.textContent=T("autosaveIdle"); },1100);
+}
+function val(k){ return state.data[k]; }
+function setVal(k,v){ state.data[k]=v; save(); }
+/* per-field photo store: legacy "gallery" stays in state.gallery, others in state.galleries[key] */
+function galleryFor(key){
+  if(!key||key==="gallery") return state.gallery;
+  if(!state.galleries) state.galleries={};
+  if(!Array.isArray(state.galleries[key])) state.galleries[key]=[];
+  return state.galleries[key];
+}
+
+const $ = (s,el=document)=>el.querySelector(s);
+const body = $("#body"), footnav = $("#footnav"), stepperEl = $("#stepper");
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* image downscale */
+function loadScaled(file, cb){
+  const reader=new FileReader();
+  reader.onload=()=>{ const img=new Image(); img.onload=()=>{
+    const max=1100; let w=img.width,h=img.height;
+    if(w>h&&w>max){h=Math.round(h*max/w);w=max;} else if(h>=w&&h>max){w=Math.round(w*max/h);h=max;}
+    const c=document.createElement("canvas");c.width=w;c.height=h;
+    c.getContext("2d").drawImage(img,0,0,w,h);
+    cb(c.toDataURL("image/jpeg",0.72));
+  }; img.src=reader.result; };
+  reader.readAsDataURL(file);
+}
+
+function renderStepper(){
+  stepperEl.innerHTML = "";
+  const cur = Math.min(state.step, REVIEW_INDEX);
+  STEPS.forEach((s,i)=>{
+    if(i>0){
+      const bar=document.createElement("div");bar.className="bar";
+      const fill=document.createElement("i");fill.style.width=(cur>i?"100%":cur===i?"50%":"0%");
+      bar.appendChild(fill);stepperEl.appendChild(bar);
+    }
+    const node=document.createElement("div");node.className="node";
+    node.dataset.state=cur>i?"done":cur===i?"active":"todo";
+    const dot=document.createElement("div");dot.className="dot";
+    dot.innerHTML=cur>i?'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>':(i+1);
+    node.appendChild(dot);
+    node.onclick=()=>{ if(i<=(state.maxStep||0)) goTo(i); };
+    stepperEl.appendChild(node);
+  });
+}
+
+function fieldLabel(f){
+  const main = isEN()&&f.en ? f.en : f.th;
+  const cap  = isEN() ? (f.en?f.th:"") : (f.en||"");
+  return `<label class="flabel"><span class="th">${esc(main)}${f.required?'<span class="req"> *</span>':''}</span>${cap?`<span class="en">${esc(cap)}</span>`:''}</label>`;
+}
+
+function renderField(f){
+  const wrap=document.createElement("div");
+  wrap.className="field";wrap.dataset.key=f.key;
+  if(f.type==="heading"){
+    wrap.innerHTML=`<div style="font-size:13px;font-weight:700;color:var(--wheat-deep);text-transform:uppercase;letter-spacing:.05em;padding:2px 0 7px;border-bottom:2px solid var(--wheat);">${esc(isEN()?(f.en||f.th):(f.th||f.en))}</div>`;
+    return wrap;
+  }
+  let html=fieldLabel(f);
+
+  if(f.type==="text"||f.type==="date"){
+    const ro=f.key==="test_date"?"readonly":"";
+    html+=`<input class="ctrl" type="${f.type}" ${ro} data-k="${f.key}" ${f.inputmode?`inputmode="${f.inputmode}"`:''} placeholder="${esc(f.placeholder||'')}" value="${esc(val(f.key)||'')}">`;
+    if(f.key==="test_date") html+=`<div class="hint">ล็อกเป็นวันที่ปัจจุบันอัตโนมัติ</div>`;
+  }
+  else if(f.type==="number"){
+    html+=`<div class="unitwrap"><input class="ctrl" type="number" inputmode="decimal" step="any" data-k="${f.key}" placeholder="${esc(f.placeholder||'')}" value="${esc(val(f.key)??'')}">${f.unit?`<span class="unit">${esc(f.unit)}</span>`:''}</div>`;
+  }
+  else if(f.type==="textarea"){
+    html+=`<textarea class="ctrl" data-k="${f.key}" placeholder="${esc(f.placeholder||'')}">${esc(val(f.key)||'')}</textarea>`;
+  }
+  else if(f.type==="select"){ html+=selectHTML(f); }
+  else if(f.type==="cols"||f.type==="cols3"){
+    html+=`<div class="grp"><div class="grp-cols ${f.type==='cols3'?'c3':''}">`+
+      f.cols.map(c=>`<div class="col"><span class="sublbl">${esc(subL(c.sub))}</span>${miniControl(c)}</div>`).join("")+`</div></div>`;
+    if(f.hint) html+=`<div class="hint">${esc(f.hint)}</div>`;
+  }
+  else if(f.type==="lotcode"){ html+=lotcodeHTML(f); }
+  else if(f.type==="numstepper"){
+    const cv=val(f.key)??"";
+    html+=`<div class="numstep" data-k="${f.key}" data-step="${f.step||1}">
+      <button type="button" class="mb" data-act="dec">−</button>
+      <div class="ns-wrap"><input class="ns-input" type="number" inputmode="numeric" value="${esc(cv)}" placeholder="${esc(f.placeholder||'')}">${f.unit?`<span class="ns-unit">${esc(f.unit)}</span>`:''}</div>
+      <button type="button" class="mb" data-act="inc">+</button></div>`;
+    if(f.autoMin) html+=`<div class="hint">คำนวณอัตโนมัติจากเวลาเข้า–ออกตู้ และปรับ +/− ได้</div>`;
+  }
+  else if(f.type==="fracEL"){
+    html+=`<div class="grp"><div class="grp-cols">
+      <div class="col"><span class="sublbl">${T("early")}</span>${mfracHTML(f.key+"_early",f.total)}</div>
+      <div class="col"><span class="sublbl">${T("late")}</span>${mfracHTML(f.key+"_late",f.total)}</div>
+    </div></div>`;
+  }
+  else if(f.type==="checks"){
+    const cur=val(f.key)||[], otherVal=val(f.key+"_other")||"", otherOn=f.allowOther&&otherVal!=="";
+    html+=`<div class="checks" data-k="${f.key}">`+
+      f.options.map(o=>`<label class="chk ${cur.includes(o)?'on':''}"><input type="checkbox" value="${esc(o)}" ${cur.includes(o)?'checked':''}><span class="cbox"></span><span class="ctext">${esc(o)}</span></label>`).join("")+
+      (f.allowOther?`<label class="chk ${otherOn?'on':''}" data-otherchk="1"><input type="checkbox" ${otherOn?'checked':''}><span class="cbox"></span><span class="ctext">${T("other")}</span></label>`:'')+
+    `</div>`+
+    (f.allowOther?`<input class="ctrl other-input" data-otherfor="${f.key}_other" placeholder="${T("otherDefect")}" value="${esc(otherVal)}" style="margin-top:9px;display:${otherOn?'block':'none'}">`:'');
+  }
+  else if(f.type==="multiphotos"){
+    const g=galleryFor(f.key);
+    html+=`<div class="gallery" data-k="${f.key}">`+
+      g.map((src,i)=>`<div class="gphoto"><img src="${src}"><button type="button" class="gdel" data-gkey="${f.key}" data-gdel="${i}">×</button></div>`).join("")+
+      `<label class="gadd"><input type="file" accept="image/*" capture="environment" multiple class="gallery-input" data-gkey="${f.key}"><span class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span>${T("addPhoto")}</span></span></label>`+
+    `</div>`;
+  }
+  else if(f.type==="result"){
+    html+=`<div class="result-opts">`+f.options.map(o=>{
+      const sel=val(f.key)===o.value;
+      return `<div class="ropt ${o.tone} ${sel?'sel':''}" data-result="${esc(o.value)}"><span class="rdot"></span><span><span class="rtxt">${esc(o.th)} · ${esc(o.value)}</span><br><span class="rsub">${esc(o.sub)}</span></span></div>`;
+    }).join("")+`</div>`;
+  }
+  html+=`<div class="err-msg">${T("requiredErr")}</div>`;
+  wrap.innerHTML=html;
+  return wrap;
+}
+
+function selectHTML(f){
+  const cur=val(f.key);
+  const isOther=f.allowOther&&cur!=null&&cur!==""&&!f.options.includes(cur);
+  const opts=[`<option value="" ${!cur?'selected':''} disabled hidden>${T("choose")}</option>`]
+    .concat(f.options.map(o=>`<option value="${esc(o)}" ${cur===o?'selected':''}>${esc(o)}</option>`));
+  if(f.allowOther) opts.push(`<option value="__other__" ${isOther?'selected':''}>${T("otherType")}</option>`);
+  return `<div class="selwrap"><select class="ctrl ${cur?'':'placeheld'}" data-k="${f.key}" data-other="${f.allowOther?1:0}">${opts.join("")}</select></div>
+    <input class="ctrl other-input" data-otherfor="${f.key}" placeholder="${T("specify")}" value="${esc(isOther?cur:'')}" style="margin-top:9px;display:${isOther?'block':'none'}">`;
+}
+
+function miniControl(c){
+  if(c.type==="select"){
+    const cur=val(c.key);
+    const opts=[`<option value="" ${!cur?'selected':''} disabled hidden>—</option>`].concat(c.options.map(o=>`<option value="${esc(o)}" ${cur===o?'selected':''}>${esc(o)}</option>`));
+    return `<div class="selwrap"><select class="mini" data-k="${c.key}">${opts.join("")}</select></div>`;
+  }
+  if(c.type==="time"){
+    const ro=c.readonly||c.stamp?"readonly":"";
+    const cls=c.stamp?"mini stamp-time":"mini";
+    return `<input class="${cls}" type="time" ${ro} data-k="${c.key}" ${c.stamp?'data-stamp="1"':''} value="${esc(val(c.key)||'')}">`;
+  }
+  return `<input class="mini" type="number" inputmode="decimal" step="any" data-k="${c.key}" placeholder="${esc(c.placeholder||'')}" value="${esc(val(c.key)??'')}">`;
+}
+
+function mfracHTML(key,total){
+  const cv=val(key)!=null?val(key):total;
+  return `<div class="mfrac" data-k="${key}" data-total="${total}"><button type="button" class="mb" data-act="dec">−</button><div class="mv"><span class="num">${cv}</span><span class="of">/${total}</span></div><button type="button" class="mb" data-act="inc">+</button></div>`;
+}
+
+function lotcodeHTML(f){
+  const dlid="dl_"+f.key;
+  const photo=state.photos[f.key+"_label"];
+  return `<div class="lotgrp grp">
+    <span class="sublbl">${T("lotCode")}</span>
+    <div class="lot-code-row">
+      <input class="mini lot-code" data-k="${f.key}" list="${dlid}" placeholder="${T("typeOrScan")}" value="${esc(val(f.key)||'')}">
+      <button type="button" class="scan-btn" data-scan="${f.key}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/></svg>${T("scan")}</button>
+      <input type="file" accept="image/*" capture="environment" class="scan-input" data-scaninput="${f.key}" hidden>
+    </div>
+    <datalist id="${dlid}">${(f.options||[]).map(o=>`<option value="${esc(o)}">`).join("")}</datalist>
+    <div class="lot-thumb-wrap" data-thumb="${f.key}">${photo?lotThumb(f.key,photo):''}</div>
+    ${f.dates?`<div class="grp-cols" style="margin-top:11px">
+      <div class="col"><span class="sublbl">MFG</span><input class="mini" type="date" data-k="${f.key}_mfg" value="${esc(val(f.key+'_mfg')||'')}"></div>
+      <div class="col"><span class="sublbl">EXP</span><input class="mini" type="date" data-k="${f.key}_exp" value="${esc(val(f.key+'_exp')||'')}"></div>
+    </div>`:''}
+  </div>`;
+}
+function lotThumb(key,src){ return `<div class="lot-thumb"><img src="${src}"><button type="button" class="x" data-clearscan="${key}">×</button></div>`; }
+
+/* ---- step render ---- */
+function renderStep(){
+  body.scrollTop=0;
+  if(state.step===REVIEW_INDEX){ renderReview(); renderNav(); renderStepper(); return; }
+  const s=STEPS[state.step];
+  const headMain = isEN()? s.sub : s.title;
+  const headSub  = isEN()? s.title : s.sub;
+  body.innerHTML=`<div class="step-head">
+      <div class="step-kicker"><span class="seg">${T("stepWord")} ${state.step+1}/${STEPS.length}</span> · ${esc(tickL(s.tick))}</div>
+      <h2>${esc(headMain)}</h2><div class="sub">${esc(headSub)}</div>
+    </div><div class="fields" id="fields"></div>`;
+  const fc=$("#fields");
+  s.fields.forEach(f=>fc.appendChild(renderField(f)));
+  bindFields(fc);
+  renderNav();renderStepper();
+}
+
+function bindFields(scope){
+  scope.querySelectorAll("[data-k]").forEach(el=>{
+    if(el.classList.contains("lot-code")||el.classList.contains("mini")||el.classList.contains("ctrl")||el.classList.contains("ns-input")){}
+    if(el.tagName==="SELECT"){
+      el.addEventListener("change",()=>{
+        el.classList.toggle("placeheld",!el.value);
+        const oi=scope.querySelector(`[data-otherfor="${el.dataset.k}"]`);
+        if(el.dataset.other==="1"&&el.value==="__other__"){ if(oi){oi.style.display="block";oi.focus();setVal(el.dataset.k,oi.value||"");} }
+        else { if(oi)oi.style.display="none"; setVal(el.dataset.k,el.value); }
+        clearErr(el);
+      });
+    } else if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"){
+      el.addEventListener("input",()=>{ setVal(el.dataset.k,el.value); clearErr(el);
+        const k=el.dataset.k;
+        if(k==="time_in"||k==="time_out") maybeAutoProof();
+        if(k==="time_out") autoSetU();
+        if(k==="set_d") autoSetE();
+        if(/_(mfg|exp)$/.test(k)){ const base=k.replace(/_(mfg|exp)$/,""); validateLotDate(base); autoStatusFromExp(base); } });
+    }
+  });
+  scope.querySelectorAll(".other-input").forEach(oi=>oi.addEventListener("input",()=>{ setVal(oi.dataset.otherfor,oi.value); clearErr(oi); }));
+
+  // mini fraction
+  scope.querySelectorAll(".mfrac").forEach(fr=>{
+    const total=+fr.dataset.total,key=fr.dataset.k,numEl=fr.querySelector(".num");
+    if(val(key)==null) setVal(key,total);
+    fr.querySelectorAll(".mb").forEach(b=>b.addEventListener("click",()=>{
+      let v=val(key)!=null?val(key):total; v+=(b.dataset.act==="inc"?1:-1); v=Math.max(0,Math.min(total,v));
+      numEl.textContent=v; setVal(key,v);
+    }));
+  });
+  // number stepper
+  scope.querySelectorAll(".numstep").forEach(ns=>{
+    const key=ns.dataset.k,step=+ns.dataset.step||1,inp=ns.querySelector(".ns-input");
+    inp.addEventListener("input",()=>{ setVal(key,inp.value===""?"":+inp.value); });
+    ns.querySelectorAll(".mb").forEach(b=>b.addEventListener("click",()=>{
+      let v=val(key);v=(v===""||v==null)?0:+v; v+=(b.dataset.act==="inc"?step:-step); v=Math.max(0,v);
+      inp.value=v; setVal(key,v);
+    }));
+  });
+  // checks
+  scope.querySelectorAll(".checks").forEach(box=>{
+    const key=box.dataset.k;
+    box.querySelectorAll(".chk").forEach(chk=>{
+      const cb=chk.querySelector("input");
+      cb.addEventListener("change",()=>{
+        chk.classList.toggle("on",cb.checked);
+        if(chk.dataset.otherchk){
+          const oi=scope.querySelector(`[data-otherfor="${key}_other"]`);
+          if(oi){ oi.style.display=cb.checked?"block":"none"; if(cb.checked)oi.focus(); else{oi.value="";setVal(key+"_other","");} }
+        } else {
+          let arr=(val(key)||[]).slice();
+          if(cb.checked){ if(!arr.includes(cb.value))arr.push(cb.value); } else { arr=arr.filter(x=>x!==cb.value); }
+          setVal(key,arr);
+        }
+      });
+    });
+  });
+  // lot scan
+  scope.querySelectorAll(".scan-btn").forEach(b=>{
+    b.addEventListener("click",()=>scope.querySelector(`[data-scaninput="${b.dataset.scan}"]`).click());
+  });
+  scope.querySelectorAll(".scan-input").forEach(inp=>{
+    inp.addEventListener("change",e=>{
+      const file=e.target.files[0]; if(!file)return; const key=inp.dataset.scaninput;
+      loadScaled(file,dataUrl=>{ state.photos[key+"_label"]=dataUrl; save();
+        const w=scope.querySelector(`[data-thumb="${key}"]`); if(w){ w.innerHTML=lotThumb(key,dataUrl); bindClearScan(w); }
+      });
+    });
+  });
+  scope.querySelectorAll(".lot-thumb-wrap").forEach(bindClearScan);
+  // gallery
+  scope.querySelectorAll(".gallery-input").forEach(inp=>{
+    inp.addEventListener("change",e=>{
+      const files=[...e.target.files]; if(!files.length)return;
+      const g=galleryFor(inp.dataset.gkey||"gallery");
+      let pending=files.length;
+      files.forEach(file=>loadScaled(file,d=>{ g.push(d); if(--pending===0){ save(); renderStep(); } }));
+    });
+  });
+  scope.querySelectorAll("[data-gdel]").forEach(b=>b.addEventListener("click",e=>{
+    e.preventDefault(); galleryFor(b.dataset.gkey||"gallery").splice(+b.dataset.gdel,1); save(); renderStep();
+  }));
+  // result
+  scope.querySelectorAll(".ropt").forEach(opt=>opt.addEventListener("click",()=>{
+    const key=opt.closest(".field").dataset.key; setVal(key,opt.dataset.result);
+    opt.parentElement.querySelectorAll(".ropt").forEach(o=>o.classList.remove("sel")); opt.classList.add("sel"); clearErr(opt);
+  }));
+  // focus highlight
+  scope.querySelectorAll(".grp").forEach(g=>{ g.addEventListener("focusin",()=>g.classList.add("focuswithin")); g.addEventListener("focusout",()=>g.classList.remove("focuswithin")); });
+  // tap-to-stamp time (lock current time, prevent backdating)
+  scope.querySelectorAll(".stamp-time").forEach(inp=>{
+    inp.addEventListener("click",()=>{
+      if(inp.value) return;
+      const d=new Date();
+      const t=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+      inp.value=t; setVal(inp.dataset.k,t); clearErr(inp);
+      if(inp.dataset.k==="time_in") maybeAutoProof();
+      if(inp.dataset.k==="time_out"){ maybeAutoProof(); autoSetU(); }
+    });
+  });
+  // recompute locked auto-fields when revisiting a step
+  autoSetE(); autoSetU();
+}
+function bindClearScan(w){
+  const b=w.querySelector("[data-clearscan]"); if(!b)return;
+  b.addEventListener("click",()=>{ delete state.photos[b.dataset.clearscan+"_label"]; save(); w.innerHTML=""; });
+}
+
+function maybeAutoProof(){
+  const ti=val("time_in"),to=val("time_out");
+  if(ti&&to){
+    const [h1,m1]=ti.split(":").map(Number),[h2,m2]=to.split(":").map(Number);
+    let diff=(h2*60+m2)-(h1*60+m1); if(diff<0)diff+=1440;
+    setVal("proofing_time",diff);
+    const inp=document.querySelector('.numstep[data-k="proofing_time"] .ns-input'); if(inp)inp.value=diff;
+  }
+}
+function clearErr(el){ const f=el.closest(".field"); if(f)f.classList.remove("invalid"); }
+
+/* ---- auto time logic: E = D + 9h, U = time_out + 1h ---- */
+function addHours(t,h){
+  if(!t) return "";
+  const [hh,mm]=t.split(":").map(Number);
+  let total=hh*60+mm+h*60; total=((total%1440)+1440)%1440;
+  return String(Math.floor(total/60)).padStart(2,"0")+":"+String(total%60).padStart(2,"0");
+}
+function autoSetE(){
+  const d=val("set_d"); if(!d) return;
+  const e=addHours(d,9); setVal("set_e",e);
+  const el=document.querySelector('[data-k="set_e"]'); if(el) el.value=e;
+}
+function autoSetU(){
+  const t=val("time_out"); if(!t) return;
+  const u=addHours(t,1); setVal("set_u",u);
+  const el=document.querySelector('[data-k="set_u"]'); if(el) el.value=u;
+}
+/* ---- EXP must not be earlier than MFG ---- */
+function lotDateError(key){ const mfg=val(key+"_mfg"),exp=val(key+"_exp"); return !!(mfg&&exp&&exp<mfg); }
+function validateLotDate(base){
+  const fl=body.querySelector(`.field[data-key="${base}"]`); if(!fl) return !lotDateError(base);
+  const err=lotDateError(base), msg=fl.querySelector(".err-msg");
+  if(err){ fl.classList.add("invalid"); if(msg)msg.textContent=T("expErr"); }
+  else { fl.classList.remove("invalid"); if(msg)msg.textContent=T("requiredErr"); }
+  return !err;
+}
+/* ---- auto status: if a lot's EXP has passed (EXP < today), force its test status to Fail ---- */
+function statusKeyForLot(base){
+  for(const s of STEPS){ for(const f of s.fields){ if(f.statusFor===base) return f.key; } }
+  return null;
+}
+function autoStatusFromExp(base){
+  const sk=statusKeyForLot(base); if(!sk) return;
+  const exp=val(base+"_exp");
+  if(exp && exp < TODAY){
+    setVal(sk,"ไม่ผ่าน / Fail");
+    const el=document.querySelector(`select[data-k="${sk}"]`);
+    if(el){ el.value="ไม่ผ่าน / Fail"; el.classList.remove("placeheld"); clearErr(el); }
+  }
+}
+
+function validateStep(){
+  const s=STEPS[state.step]; let ok=true,firstBad=null;
+  s.fields.forEach(f=>{
+    // EXP must not be earlier than MFG on any lot field with dates
+    if(f.type==="lotcode"&&f.dates&&lotDateError(f.key)){
+      ok=false; validateLotDate(f.key);
+      const el=body.querySelector(`.field[data-key="${f.key}"]`);
+      if(el&&!firstBad)firstBad=el;
+    }
+    if(!f.required) return;
+    const v=val(f.key);
+    if(v==null||v===""){ ok=false; const el=body.querySelector(`.field[data-key="${f.key}"]`); if(el){el.classList.add("invalid"); if(!firstBad)firstBad=el;} }
+  });
+  if(firstBad) body.scrollTo({top:Math.max(0,firstBad.offsetTop-90),behavior:"smooth"});
+  return ok;
+}
+
+/* ---- review ---- */
+function fmtUnit(f,v){ if(v==null||v==="")return null; return f.unit?`${v} ${f.unit}`:v; }
+function renderReview(){
+  const verdict=val("result");
+  const tone=verdict==="PASS"?"pass":verdict==="Not Pass"?"fail":verdict?"hold":"";
+  const vth=verdict==="PASS"?L("ผ่าน","Pass"):verdict==="Not Pass"?L("ไม่ผ่าน","Not Pass"):L("ทบทวนซ้ำ","Re-Confirm");
+  let html=`<div class="step-head"><div class="step-kicker"><span class="seg">${T("reviewSeg")}</span> · ${T("reviewSub")}</div><h2>${T("reviewTitle")}</h2><div class="sub">${T("reviewDesc")}</div></div>`;
+  if(verdict){
+    const icon=tone==="pass"?'<path d="M20 6 9 17l-5-5"/>':tone==="fail"?'<path d="M18 6 6 18M6 6l12 12"/>':'<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/>';
+    html+=`<div class="verdict ${tone}"><span class="vchip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span><span class="vt"><span>${T("resultLine")}</span><strong>${vth} · ${esc(verdict)}</strong></span></div>`;
+  }
+  STEPS.forEach((s,si)=>{
+    let rows="";
+    s.fields.forEach(f=>{
+      if(f.type==="result"||f.type==="multiphotos"||f.type==="heading") return;
+      if(f.type==="cols"||f.type==="cols3"){
+        f.cols.forEach(c=>{ const v=val(c.key); rows+=reviewRow(`${f.th.split("—")[0].split("(")[0].trim()} · ${c.sub}`, (v!=null&&v!=="")?(c.unit?`${v} ${c.unit}`:v):null); });
+      } else if(f.type==="fracEL"){
+        const e=val(f.key+"_early"),l=val(f.key+"_late");
+        rows+=reviewRow(f.th.split("(")[0].trim(), `ต้น ${e??f.total}/${f.total} · ปลาย ${l??f.total}/${f.total}`);
+      } else if(f.type==="numstepper"){ rows+=reviewRow(f.th, fmtUnit(f,val(f.key))); }
+      else if(f.type==="checks"){
+        let arr=(val(f.key)||[]).slice(); const o=val(f.key+"_other"); if(o)arr.push(o);
+        rows+=reviewRow(f.th, arr.length?arr.join(", "):null);
+      } else if(f.type==="lotcode"){
+        rows+=reviewRow(f.th+" · รหัส", val(f.key));
+        if(f.dates){ rows+=reviewRow(f.th+" · MFG", val(f.key+"_mfg")); rows+=reviewRow(f.th+" · EXP", val(f.key+"_exp")); }
+        if(state.photos[f.key+"_label"]) rows+=reviewRow(f.th+" · ภาพฉลาก", "✓ แนบแล้ว");
+      } else { rows+=reviewRow(f.th, fmtUnit(f,val(f.key))); }
+    });
+    html+=`<div class="review-group"><div class="rg-head"><span class="t">${esc(isEN()?s.sub:s.title)}</span><button class="edit" data-edit="${si}">${T("edit")}</button></div>${rows}`;
+    s.fields.filter(f=>f.type==="multiphotos").forEach(f=>{
+      const g=galleryFor(f.key);
+      if(g.length) html+=`<div class="review-photos">${g.map(i=>`<img src="${i}">`).join("")}</div>`;
+    });
+    html+=`</div>`;
+  });
+  body.innerHTML=html;
+  body.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>goTo(+b.dataset.edit)));
+}
+function reviewRow(k,v){ return `<div class="review-row"><span class="k">${esc(k)}</span><span class="v ${v==null||v===''?'empty':''}">${(v==null||v==='')?'—':esc(v)}</span></div>`; }
+
+/* ---- nav ---- */
+function renderNav(){
+  const last=state.step===REVIEW_INDEX;
+  footnav.innerHTML="";
+  if(state.step>0){
+    const back=document.createElement("button");back.className="btn btn-ghost";
+    back.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+    back.onclick=()=>goTo(state.step-1); footnav.appendChild(back);
+  }
+  const next=document.createElement("button");next.className="btn btn-primary";
+  if(last){ next.innerHTML=T("submit")+' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>'; next.onclick=submitForm; }
+  else { next.innerHTML=T("next")+' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>'; next.onclick=()=>{ if(validateStep())goTo(state.step+1); }; }
+  footnav.appendChild(next);
+}
+function goTo(i){ state.step=Math.max(0,Math.min(REVIEW_INDEX,i)); state.maxStep=Math.max(state.maxStep||0,state.step); save(false); renderStep(); }
+
+/* ---- multi-day archive ---- */
+const ARCHIVE_KEY="pandough_reports_v1";
+function loadArchive(){ try{ return JSON.parse(localStorage.getItem(ARCHIVE_KEY))||[]; }catch(e){ return []; } }
+function saveArchive(arr){ try{ localStorage.setItem(ARCHIVE_KEY, JSON.stringify(arr)); }catch(e){} }
+
+/* flatten a record's data to readable label/value rows for export */
+function flatLabelVals(data){
+  const rows=[];
+  STEPS.forEach(s=>{
+    s.fields.forEach(f=>{
+      if(f.type==="result"||f.type==="multiphotos"||f.type==="heading") return;
+      if(f.type==="cols"||f.type==="cols3"){
+        f.cols.forEach(c=>{ const v=data[c.key]; if(v!=null&&v!=="") rows.push([`${f.th.split("—")[0].split("(")[0].trim()} · ${c.sub}`, c.unit?`${v} ${c.unit}`:v]); });
+      } else if(f.type==="fracEL"){
+        rows.push([f.th.split("(")[0].trim(), `ต้น ${data[f.key+"_early"]??f.total}/${f.total} · ปลาย ${data[f.key+"_late"]??f.total}/${f.total}`]);
+      } else if(f.type==="checks"){
+        let arr=(data[f.key]||[]).slice(); const o=data[f.key+"_other"]; if(o)arr.push(o);
+        if(arr.length) rows.push([f.th, arr.join(", ")]);
+      } else if(f.type==="lotcode"){
+        if(data[f.key]!=null&&data[f.key]!=="") rows.push([f.th+" · รหัส", data[f.key]]);
+        if(f.dates){ if(data[f.key+"_mfg"]) rows.push([f.th+" · MFG", data[f.key+"_mfg"]]); if(data[f.key+"_exp"]) rows.push([f.th+" · EXP", data[f.key+"_exp"]]); }
+      } else { const v=data[f.key]; if(v!=null&&v!=="") rows.push([f.th, f.unit?`${v} ${f.unit}`:v]); }
+    });
+  });
+  return rows;
+}
+
+function downloadBlob(content,mime,filename){
+  const blob=new Blob([content],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
+/* ---- Export: Excel (.xls HTML table, Thai-safe via UTF-8 BOM) ---- */
+function exportExcel(records,filename){
+  if(!records.length){ alert("ยังไม่มีรายงานที่บันทึกไว้"); return; }
+  const cols=["REF","วันที่ทดสอบ","เวลาส่ง","ผลการตรวจสอบ"];
+  const keyOrder=[];
+  records.forEach(r=>flatLabelVals(r.data).forEach(([k])=>{ if(!keyOrder.includes(k))keyOrder.push(k); }));
+  const head=cols.concat(keyOrder);
+  let rowsHtml="";
+  records.forEach(r=>{
+    const map={}; flatLabelVals(r.data).forEach(([k,v])=>map[k]=v);
+    const cells=[r.ref, r.data.test_date||"", (r.submittedAt||"").replace("T"," ").slice(0,16), r.data.result||""]
+      .concat(keyOrder.map(k=>map[k]!=null?map[k]:""));
+    rowsHtml+="<tr>"+cells.map(c=>`<td>${esc(c)}</td>`).join("")+"</tr>";
+  });
+  const html=`﻿<html><head><meta charset="utf-8"></head><body><table border="1"><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`;
+  downloadBlob(html,"application/vnd.ms-excel;charset=utf-8",filename||"PanDough_Summary.xls");
+}
+
+/* ---- Export: PDF (daily summary via print) ---- */
+function exportPDF(records){
+  if(!records.length){ alert("ยังไม่มีรายงานที่บันทึกไว้"); return; }
+  const byDay={};
+  records.forEach(r=>{ const d=r.data.test_date||"ไม่ระบุวันที่"; (byDay[d]=byDay[d]||[]).push(r); });
+  const days=Object.keys(byDay).sort();
+  let body="";
+  days.forEach(d=>{
+    const recs=byDay[d];
+    const pass=recs.filter(r=>r.data.result==="PASS").length;
+    const fail=recs.filter(r=>r.data.result==="Not Pass").length;
+    const hold=recs.filter(r=>r.data.result==="Re-Confirm หาสาเหตุ").length;
+    body+=`<h2>วันที่ ${esc(d)}</h2>
+      <p class="cnt">รวม ${recs.length} รายงาน · ผ่าน ${pass} · ไม่ผ่าน ${fail} · ทบทวนซ้ำ ${hold}</p>
+      <table><thead><tr><th>REF</th><th>ตัวอย่าง</th><th>ผู้ผลิต</th><th>แบตช์</th><th>ผล</th><th>ผู้อนุมัติ</th><th>เวลาส่ง</th></tr></thead><tbody>`;
+    recs.forEach(r=>{
+      body+=`<tr><td>${esc(r.ref)}</td><td>${esc(r.data.sample_number||"")}</td><td>${esc(r.data.supplier||"")}</td><td>${esc(r.data.batch_size||"")}</td><td>${esc(r.data.result||"")}</td><td>${esc(r.data.approved_by||"")}</td><td>${esc((r.submittedAt||"").replace("T"," ").slice(0,16))}</td></tr>`;
+    });
+    body+=`</tbody></table>`;
+  });
+  const doc=`<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>สรุปรายงานคุณภาพแป้งโดว์</title>
+    <style>
+      body{font-family:"IBM Plex Sans Thai","Tahoma",sans-serif;color:#2A2520;padding:24px;}
+      h1{font-size:20px;margin:0 0 4px;} .meta{color:#9A9082;font-size:12px;margin-bottom:18px;}
+      h2{font-size:15px;margin:22px 0 4px;border-bottom:2px solid #C68A2E;padding-bottom:3px;}
+      .cnt{font-size:12px;color:#5C544A;margin:0 0 8px;}
+      table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;}
+      th,td{border:1px solid #D8CCB7;padding:5px 7px;text-align:left;}
+      th{background:#F6E9CE;} @media print{button{display:none;}}
+    </style></head><body>
+    <h1>สรุปรายงานการตรวจสอบคุณภาพแป้งโดว์ (QC-PD-01)</h1>
+    <div class="meta">พิมพ์เมื่อ ${esc(new Date().toLocaleString("th-TH"))} · รวมทั้งหมด ${records.length} รายงาน · ${days.length} วัน</div>
+    ${body}
+    <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>
+    </body></html>`;
+  const w=window.open("","_blank");
+  if(w){ w.document.open(); w.document.write(doc); w.document.close(); }
+  else { downloadBlob(doc,"text/html;charset=utf-8","PanDough_Summary.html"); }
+}
+
+/* ---- Export: per-Supplier bilingual analysis (TH/EN) for sending to suppliers ---- */
+function exportSupplierPDF(records){
+  if(!records.length){ alert("ยังไม่มีรายงานที่บันทึกไว้ / No saved reports yet"); return; }
+  const bySup={};
+  records.forEach(r=>{ const s=(r.data.supplier&&String(r.data.supplier).trim())||"ไม่ระบุ / N/A"; (bySup[s]=bySup[s]||[]).push(r); });
+  const sups=Object.keys(bySup).sort();
+  const dates=records.map(r=>r.data.test_date).filter(Boolean).sort();
+  const range=dates.length?(dates[0]===dates[dates.length-1]?dates[0]:`${dates[0]} – ${dates[dates.length-1]}`):"—";
+  let body="";
+  sups.forEach(sup=>{
+    const recs=bySup[sup].slice().sort((a,b)=>String(a.data.test_date||"").localeCompare(String(b.data.test_date||"")));
+    const pass=recs.filter(r=>r.data.result==="PASS").length;
+    const fail=recs.filter(r=>r.data.result==="Not Pass").length;
+    const hold=recs.filter(r=>r.data.result==="Re-Confirm หาสาเหตุ").length;
+    const rate=recs.length?Math.round(pass/recs.length*100):0;
+    body+=`<h2>${esc(sup)}</h2>
+      <p class="cnt">รวม/Total ${recs.length} · ผ่าน/Pass ${pass} · ไม่ผ่าน/Fail ${fail} · ทบทวนซ้ำ/Re-Confirm ${hold} · อัตราผ่าน/Pass rate <b>${rate}%</b></p>
+      <table><thead><tr>
+        <th>REF</th><th>วันที่<br>Date</th><th>ตัวอย่าง<br>Sample</th>
+        <th>คุณภาพหลังผสม<br>After mix</th><th>คุณภาพหลังพิสูจน์<br>After proof</th>
+        <th>คุณภาพหลังอบ<br>After bake</th><th>รสสัมผัส<br>Sensory</th>
+        <th>ผล<br>Result</th></tr></thead><tbody>`;
+    recs.forEach(r=>{
+      const res=r.data.result||"";
+      const cls=res==="PASS"?"rp":res==="Not Pass"?"rf":res?"rh":"";
+      body+=`<tr><td>${esc(r.ref)}</td><td>${esc(r.data.test_date||"")}</td><td>${esc(r.data.sample_number||"")}</td><td>${esc(r.data.q_mix||"")}</td><td>${esc(r.data.q_proof||"")}</td><td>${esc(r.data.q_bake||"")}</td><td>${esc(r.data.sensory||"")}</td><td class="${cls}">${esc(res)}</td></tr>`;
+    });
+    body+=`</tbody></table>`;
+  });
+  const doc=`<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>สรุปแยกผู้ผลิต / Supplier Summary</title>
+    <style>
+      body{font-family:"IBM Plex Sans Thai","Tahoma",sans-serif;color:#2A2520;padding:24px;}
+      h1{font-size:19px;margin:0 0 4px;} .meta{color:#9A9082;font-size:12px;margin-bottom:18px;}
+      h2{font-size:15px;margin:22px 0 4px;border-bottom:2px solid #C68A2E;padding-bottom:3px;}
+      .cnt{font-size:12px;color:#5C544A;margin:0 0 8px;}
+      table{width:100%;border-collapse:collapse;font-size:10.5px;margin-bottom:10px;}
+      th,td{border:1px solid #D8CCB7;padding:5px 7px;text-align:left;vertical-align:top;}
+      th{background:#F6E9CE;} td.rp{color:#2E7D52;font-weight:700;} td.rf{color:#C2410C;font-weight:700;} td.rh{color:#B8881A;font-weight:700;}
+      @media print{button{display:none;}}
+    </style></head><body>
+    <h1>สรุปผลตรวจสอบคุณภาพแป้งโดว์ แยกตามผู้ผลิต<br>Pan Dough Quality Summary by Supplier (QC-PD-01)</h1>
+    <div class="meta">ช่วงข้อมูล/Period ${esc(range)} · พิมพ์เมื่อ/Printed ${esc(new Date().toLocaleString("th-TH"))} · รวม/Total ${records.length} รายงาน/reports · ${sups.length} ผู้ผลิต/suppliers</div>
+    ${body}
+    <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>
+    </body></html>`;
+  const w=window.open("","_blank");
+  if(w){ w.document.open(); w.document.write(doc); w.document.close(); }
+  else { downloadBlob(doc,"text/html;charset=utf-8","PanDough_Supplier_Summary.html"); }
+}
+
+function submitForm(){
+  const ref="PD-"+new Date().toISOString().slice(2,10).replace(/-/g,"")+"-"+String(val("sample_number")||"001").replace(/\D/g,"").padStart(3,"0");
+  const arr=loadArchive();
+  arr.push({ ref, submittedAt:new Date().toISOString(), data:Object.assign({},state.data) });
+  saveArchive(arr);
+  $("#successRef").textContent="REF · "+ref;
+  const cnt=document.getElementById("successCount"); if(cnt) cnt.textContent="บันทึกสะสมแล้ว "+arr.length+" รายงาน";
+  $("#success").classList.add("show");
+}
+$("#againBtn").onclick=()=>{ state={step:0,data:{test_date:TODAY},photos:{},gallery:[],galleries:{},maxStep:0}; save(false); $("#success").classList.remove("show"); renderStep(); };
+$("#btnPDF").onclick=()=>exportPDF(loadArchive());
+$("#btnSup").onclick=()=>exportSupplierPDF(loadArchive());
+$("#btnXLS").onclick=()=>exportExcel(loadArchive(),"PanDough_Summary.xls");
+
+/* ---- language toggle (TH default / EN) ---- */
+function applyChrome(){
+  const tgl=document.getElementById("langToggle");
+  if(tgl) tgl.querySelectorAll(".lt-seg").forEach(s=>s.classList.toggle("on", s.dataset.lang===state.lang));
+  const bt=document.getElementById("brandTitle"); if(bt) bt.textContent=T("appTitle");
+  const bs=document.getElementById("brandSub"); if(bs) bs.innerHTML=T("appSub");
+  const fl=document.getElementById("formLbl"); if(fl) fl.textContent=T("formLbl");
+  const st=document.getElementById("saveTxt"); if(st) st.textContent=T("autosaveIdle");
+  document.documentElement.lang=state.lang;
+}
+const _langToggle=document.getElementById("langToggle");
+if(_langToggle) _langToggle.addEventListener("click",()=>{ state.lang=isEN()?"th":"en"; save(false); applyChrome(); renderStep(); });
+
+applyChrome();
+renderStep();
+</script>
+
+</body></html>
